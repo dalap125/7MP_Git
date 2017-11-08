@@ -632,7 +632,7 @@ faireKnn <- function(dfDonneesPoly,
     group_by(ID_COURBE, COURBE, classec, SDOM_BIO, FAM_STAT, GR_STATION,
              TYF, Enjeux_evo, typeCouv, grandTYF) %>%
     summarise(sumSup = sum(SUPERFICIE)) %>%
-    ungroup %>% 
+    ungroup %>%
     
     
     #5.1.5 Créer des colonnes où on peut enregistrer les courbes auxquelles
