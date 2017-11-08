@@ -557,7 +557,7 @@ faireKnn <- function(dfDonneesPoly,
   #ces polygones du jeu de donnèes et ajouter le jeu de données des
   #courbes petites (où on vient de mettre ces variables à jour)
   dfDonneesPoly <- 
-    dfDonneesPoly %>% 
+    dfDonneesPoly %>%  
     filter(!ID_BFEC %in% courbesPetites$ID_BFEC) %>% 
     bind_rows(courbesPetites) %>% 
     arrange(ID_BFEC)
@@ -1183,55 +1183,58 @@ faireKnn <- function(dfDonneesPoly,
   
   #6.10 Créer les 2 dataframes d'extrant: un avec l'id des polygones et le point d'attachement
   #sur la courbe; et un avec la COURBE et le point d'attachement sur la courbe
-  #6.10.0 Pour nous assurer de la bonne ordre des points d'attachement, on va les
-  #convertir temporairement dans une variable numérique (sinon "102.3" viendrait avant
-  #20.1 dans une ordre alphabétique)
-  donneesCluster$clusterAttach <- as.numeric(donneesCluster$clusterAttach)
-  
-  
-  #6.10.1 Créer le dataframe des polygones en sélectionnant les 2 colonnes qu'on veut
-  dfPoly <- 
-    donneesCluster %>%
-    select(ID_BFEC, classec, COURBE, Enjeux_strConf, clusterAttach) %>% 
-    mutate(clusterAttach = format(clusterAttach, nsmall = 2))
+  # #6.10.0 Pour nous assurer que tous les joins sont valides, on va transformer
+  # #les points d'attache dans des variables de caractères avec 2 points décimaux
+  # #(e.g. 10.20 normalement est convertie en 10.2)
+  # browser()
+  # donneesCluster <- 
+  #   donneesCluster %>%
+  #   mutate(clusterAttach = format(clusterAttach, nsmall = 2))
   # 
-  # catCourbes <- 
-  #   catCourbes %>% 
+  # catCourbes <-
+  #   catCourbes %>%
   #   mutate(VOL_HA = format(VOL_HA, nsmall = 2))
   # 
-  # asd <- left_join(dfPoly, 
-  #                  catCourbes %>% select(ID_COURBE, VOL_HA, age),
-  #                  by = c("ID_COURBE", "clusterAttach" = "VOL_HA"))
+  # asdCat <- 
+  #   catCourbes %>%
+  #   mutate(#VOL_HA = as.character(VOL_HA),
+  #          VOL_HA = format(VOL_HA, nsmall = 2))
+  # 
+  # #de la bonne ordre des points d'attachement, on va les
+  # #convertir temporairement dans une variable numérique (sinon "102.3" viendrait avant
+  # #20.1 dans une ordre alphabétique)
+  #6.10.0 Ajouter l'âge d'attachement au jeu de données principal
+  donneesCluster <- 
+    left_join(donneesCluster,
+              catCourbes %>% transmute(ID_COURBE, 
+                                       clusterAttach = as.character(VOL_HA), 
+                                       ageAttach = age),
+              by = c("ID_COURBE", "clusterAttach"))
+  
+ 
+  #6.10.1 Créer le dataframe des polygones en sélectionnant les 2 colonnes qu'on 
+  #veut. Il faut d'abord joindre l'âge de la courbe au point d'attachement
+  dfPoly <- 
+    donneesCluster %>% 
+    select(ID_BFEC, classec, COURBE, Enjeux_strConf, clusterAttach, ageAttach)
+
   
   #6.10.2 Créer le dataframe des strates
   dfStrates <- 
     donneesCluster %>% 
     
-    group_by(COURBE, Enjeux_strConf, classec, clusterAttach) %>% 
+    #6.10.2.1 Regrouper le jeu de données selon les variables qu'on veut
+    group_by(COURBE, Enjeux_strConf, classec, clusterAttach, ageAttach) %>% 
+    
+    #6.10.2.2 Calculer la somme de la superficie de chaque GE
     summarise(SUPERFICIE = sum(SUPERFICIE)) %>% 
     ungroup() %>% 
+    
+    #6.10.2.3 Assurer la bonne ordre des points d'attachement
     mutate(clusterAttach = as.numeric(clusterAttach)) %>% 
     arrange(COURBE, Enjeux_strConf, classec, clusterAttach) %>% 
     mutate(clusterAttach = as.character(clusterAttach))
-  
-  # #6.10.2.1 Sélectionner les 3 colonnes qu'on veut
-  # select(COURBE, Enjeux_strConf, classec, clusterAttach) %>% 
-  # 
-  # #6.10.2.2 Pour nous assurer de la bonne ordre des points d'attachement, on va les
-  # #convertir temporairement dans une variable numérique (sinon "102.3" viendrait avant
-  # #20.1 dans une ordre alphabétique)
-  # mutate(clusterAttach = as.numeric(clusterAttach)) %>% 
-  # 
-  # #6.10.2.3. Sélectionner seulement les valeurs uniques de chaque courbe ET point d'attachement
-  # distinct(COURBE, Enjeux_strConf, classec, clusterAttach) %>% 
-  # 
-  # #6.10.2.4 Organiser le jeu de données selon la courbe et l'ordre croissante des 
-  # #points d'attachement
-  # arrange(COURBE, Enjeux_strConf, classec, clusterAttach) %>% 
-  # 
-  # #6.10.2.5 Reconvertir les points d'attachement dans une variable de caractères
-  # mutate(clusterAttach = as.character(clusterAttach))
-  
+
   
   #6.10.3 Créer une liste avec ces 2 jeux de données plus le data frame qui a 
   #les courbes auxquelles les groupes évolutifs trop petits ont été attachés
