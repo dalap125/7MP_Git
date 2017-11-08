@@ -233,16 +233,54 @@ faireKnn <- function(dfDonneesPoly,
   
   
   #2. Traitement des données
-  #2.1 Regrouper les catalogues de courbes dans un seul objet en
-  #2.1.1 Identifier les variables dont on a besoin
-  varsCourbes <- c("DESC_FAMC",      #La courbe"
-                   "age",
-                   "GR_STATION",
-                   "TYF",
+  #2.1 Vérifier que toutes les variables dont on a besoin sont la
+  #2.1.1 Catalogue des courbes
+  #2.1.1.1 Identifier les variables nécessaires
+  varsCatCourbes <- c("DESC_FAMC", "age", "SDOM",    #le sous-domaine
+                   "GR_STATION", "TYF", "enjeux",   #l'enjeux stratégique (e.g. En95)
                    "classe",   #classe de volume (v1, v2,...)
-                   "VOL_HA",  #Le volume du point d'attachement
-                   "classec",     #Le côté de la courbe
-                   "extrapol")    #indicateur d'extrapolation
+                   "VOL_HA", "classec")     #Le côté de la courbe
+
+
+  
+  #2.1.1.2  S'il y a au moins une variable manquante
+  if(!all(varsCatCourbes %in% names(catCourbes))){
+    
+    #On l'identifie
+    varsManq <- varsCatCourbes[!varsCatCourbes %in% 
+                                  names(catCourbes)]
+    
+    #Et on arr?te la fonction
+    stop("La ou les variables ", paste(varsManq, collapse = ", "),
+         " ne sont pas pr?sentes dans le jeu de donn?es d?fini par 'catCourbes'.",
+         "Faites attention que cette fonction est sensible aux minuscules ",
+         "et aux majuscules.")
+  }
+  
+  
+  #2.1.2 Jeu de données
+  #2.1.2.1 Identifier les variables nécessaires
+  varsDonneesPoly <- c("ID_BFEC", "v_TOT", "SDOM_BIO", "GR_STATION", 
+                       "TYF", "Enjeux_evo", "Enjeux_str", 
+                       "cl_vol3", "cl_vol5", "GE1", "GE3", "GE5",
+                       "clage", "SUPERFICIE")   
+  
+  
+  
+  #2.1.2.2  S'il y a au moins une variable manquante
+  if(!all(varsDonneesPoly %in% names(dfDonneesPoly))){
+    
+    #On l'identifie
+    varsManq <- varsDonneesPoly[!varsDonneesPoly %in% 
+                                 names(dfDonneesPoly)]
+    
+    #Et on arrète la fonction
+    stop("La ou les variables ", paste(varsManq, collapse = ", "),
+         " ne sont pas présentes dans le jeu de données défini par 'dfDonneesPoly'.",
+         "Faites attention que cette fonction est sensible aux minuscules ",
+         "et aux majuscules.")
+  }
+  
   
   
   
@@ -401,13 +439,14 @@ faireKnn <- function(dfDonneesPoly,
   compromisCatCourbes <- 
     compromisCatCourbes %>% 
     mutate_all(as.character) %>% 
-    select(DESC_FAMC, DESC_FAMC_Comp)
+    select(SDOM, DESC_FAMC, DESC_FAMC_Comp)
   
-  
+ 
   #3.5.5 Utiliser ce catalogue pour trouver les courbes de compromis des
   #polygones
-  dfDonneesPoly <- left_join(dfDonneesPoly, compromisCatCourbes, 
-                   by = c("COURBE" = "DESC_FAMC"))
+  dfDonneesPoly <- left_join(dfDonneesPoly,
+                             distinct(compromisCatCourbes), #distinct à causde des SNATs...
+                   by = c("SDOM_BIO" = "SDOM", "COURBE" = "DESC_FAMC"))
   
   #3.5.6 Faire un avertissement qui nous dit quelles courbes nous manquent
   courbesManq <- dfDonneesPoly %>% filter(is.na(DESC_FAMC_Comp))
@@ -429,31 +468,39 @@ faireKnn <- function(dfDonneesPoly,
   
   #3.6 Déterminer la classec du polygone
   #3.6.1 Calculer le point maximale de chaque courbe
-  pointMaxCourbe <- 
-    catCourbes %>% group_by(DESC_FAMC) %>% 
-    slice(which(VOL_HA == max(VOL_HA))[1]) %>% 
-    ungroup() %>% 
-    
-    #3.6.2 Attribuer une classe de age a chaque point maxile (selon
-    #les classes d?âge des polygones)
-    mutate(clageMaxCourbe = 
-             case_when(.$age <= 55 ~ 50,
-                       .$age <= 75 ~ 70,
-                       .$age <= 95 ~ 90,
-                       TRUE ~ 120)) %>% 
-    select(DESC_FAMC, clageMaxCourbe)
-  
-  
-  #3.6.3 Joindre l'âge maximale de la courbe au jeu de données
-  dfDonneesPoly <- left_join(dfDonneesPoly, pointMaxCourbe,
-                             by = c("COURBE" = "DESC_FAMC"))
-  
-  
-  #3.6.4 Créer la classec avec la classe d'âge de la courbe au point maximale
-  dfDonneesPoly <- 
-    dfDonneesPoly %>% 
-    mutate(classec = ifelse(clage <= clageMaxCourbe, "1", "2")) %>% 
-    select(-clageMaxCourbe)
+  # pointMaxCourbe <-
+  #   catCourbes %>% group_by(DESC_FAMC) %>%
+  #   slice(which(VOL_HA == max(VOL_HA))[1]) %>%
+  #   ungroup() %>%
+  # 
+  #   #3.6.2 Attribuer une classe de age a chaque point maxile (selon
+  #   #les classes d?âge des polygones)
+  #   mutate(clageMaxCourbe =
+  #            case_when(.$age <= 55 ~ 50,
+  #                      .$age <= 75 ~ 70,
+  #                      .$age <= 95 ~ 90,
+  #                      TRUE ~ 120)) %>%
+  #   select(DESC_FAMC, clageMaxCourbe)
+  # 
+  # 
+  # #3.6.3 Joindre l'âge maximale de la courbe au jeu de données
+  # dfDonneesPoly <- left_join(dfDonneesPoly, pointMaxCourbe,
+  #                            by = c("COURBE" = "DESC_FAMC"))
+  # 
+  # 
+  # #3.6.4 Créer la classec avec la classe d'âge de la courbe au point maximale
+  # dfDonneesPoly <-
+  #   dfDonneesPoly %>%
+  #   mutate(classec = ifelse(clage <= clageMaxCourbe, "1", "2")) %>%
+  #   select(-clageMaxCourbe)
+  #######################################################################
+  #Cette partie a été simplifiée, mais j'ai décidé de garder le code en
+  #commentaire, juste au cas où ils veulent que je change ça plus tard
+  dfDonneesPoly <-
+    dfDonneesPoly %>%
+    mutate(clage = as.numeric(as.character(clage)),
+           classec = ifelse(clage <= 70, "1", "2"))
+  #######################################################################
   
   
   
@@ -541,7 +588,7 @@ faireKnn <- function(dfDonneesPoly,
              paste(COURBE, classec) %in% 
              paste(idCotePetit$COURBE, idCotePetit$classec)) %>% 
 
-    
+   
     # #5.1.5 Chercher les courbes plus spécifiques (e.g. v1 au lieu de la générale)
     # #5.1.5.1 Re-ajouter les courbes compromis en utilisant la GE5 au lieu
     # #de la courbe choisie par l'algorithme
@@ -576,7 +623,8 @@ faireKnn <- function(dfDonneesPoly,
     #5.1.5 Créer des colonnes où on peut enregistrer les courbes auxquelles
     #ce groupes évolutifs trop petits ont été attachés
     mutate(courbeEquiv = NA,
-           idEquiv = NA) 
+           idEquiv = NA,
+           condNumero = NA) #Pour stocker le numéro de la condition utilisée
   
   
   #5.2 Si on a des peuplements qui sont trop petits, il faut qu'on trouve la courbe
@@ -592,10 +640,14 @@ faireKnn <- function(dfDonneesPoly,
       filter(ID_COURBE %in% dfDonneesPoly$ID_COURBE,
              
              #Et on enlève ceux qui appartiennent à des courbes petites
-             !ID_COURBE %in% c(NA, courbesPetites$ID_COURBE),
+             !ID_COURBE %in% c(NA, courbesPetites$ID_COURBE)) %>%
              
-             #3.2.3 Sélectionner seulement les points non-extrapolés
-             extrapol %in% "non") %>%
+             ##########################################################
+             # On ne fait plus cette selection selon les points non-extrapolés
+             # #3.2.3 Sélectionner seulement les points non-extrapolés
+             # 
+             # extrapol %in% "non") %>%
+             ##########################################################
       
       #5.2.4 Sélectionner les colonnes dont on a besoin
       select(ID_COURBE, classec, SDOM, FAM_STAT, GR_STATION, typeCouv, 
@@ -644,20 +696,20 @@ faireKnn <- function(dfDonneesPoly,
       
       
       #5.3.2 Définer les filtres qu'on veut appliquer
-      #5.3.2.0 Courbe équivalente dans un autre sous domaine AVEC l'enjeux
+      #5.3.2.1 Courbe équivalente dans un autre sous domaine AVEC l'enjeux
       cond_sDomEnj <- 
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$TYF,
               df_tempCatCourbes$enjeux, sep = "_") %in%
         paste(courbesPetites$GR_STATION[i], courbesPetites$TYF[i],
               courbesPetites$Enjeux_evo[i], sep = "_")
       
-      #5.3.2.1 Courbe équivalente dans un autre sous domaine SANS l'enjeux 
+      #5.3.2.2 Courbe équivalente dans un autre sous domaine SANS l'enjeux 
       cond_sDom <- 
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$TYF, sep = "_") %in%
         paste(courbesPetites$GR_STATION[i], courbesPetites$TYF[i], sep = "_")
             
       
-      #5.3.2.2 Courbe équivalente dans le même sous-domaine, famStat et TYF
+      #5.3.2.3 Courbe équivalente dans le même sous-domaine, famStat et TYF
       cond_famTyf <-
         paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$FAM_STAT,
               df_tempCatCourbes$TYF, sep = "_") %in%
@@ -665,7 +717,7 @@ faireKnn <- function(dfDonneesPoly,
               courbesPetites$TYF[i], sep = "_")
       
       
-      #5.3.2.3 Courbe équivalente dans le même sous-domaine, grStat, type de couvert,
+      #5.3.2.4 Courbe équivalente dans le même sous-domaine, grStat, type de couvert,
       #mais un TYF différent 
       cond_grandTyfCouv <-
         paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$GR_STATION,
@@ -674,7 +726,7 @@ faireKnn <- function(dfDonneesPoly,
               courbesPetites$typeCouv[i], courbesPetites$grandTYF[i],sep = "_") 
       
       
-      #5.3.2.4 Courbe équivalente dans le même sous-domaine, grStat et type de couvert
+      #5.3.2.5 Courbe équivalente dans le même sous-domaine, grStat et type de couvert
       cond_couv <-
         paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$GR_STATION,
               df_tempCatCourbes$typeCouv, sep = "_") %in%
@@ -682,19 +734,19 @@ faireKnn <- function(dfDonneesPoly,
               courbesPetites$typeCouv[i],sep = "_")
       
       
-      #5.3.2.5 Courbe équivalente dans le même sous-domaine et TYF
+      #5.3.2.6 Courbe équivalente dans le même sous-domaine et TYF
       cond_tyf <-
         paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$TYF, sep = "_") %in%
         paste(courbesPetites$SDOM_BIO[i], courbesPetites$TYF[i], sep = "_")
       
       
-      #5.3.2.6 Courbe équivalente dans le même sous-domaine et TYF
+      #5.3.2.7 Courbe équivalente dans le même sous-domaine et TYF
       cond_grStat <-
         paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$GR_STATION, sep = "_") %in% 
         paste(courbesPetites$SDOM_BIO[i], courbesPetites$GR_STATION[i], sep = "_") 
       
       
-      #5.3.2.7 N'importe quel courbe dans le même sous-domaine 
+      #5.3.2.8 N'importe quel courbe dans le même sous-domaine 
       cond_SDomSeule <-
         paste(df_tempCatCourbes$SDOM) %in% 
         paste(courbesPetites$SDOM_BIO[i]) 
@@ -702,7 +754,7 @@ faireKnn <- function(dfDonneesPoly,
       
       
       #5.3.3 Appliquer les filters
-      #5.3.3.0 Laisser tomber juste le sous domaine (en gardant l'enjeux)
+      #5.3.3.1 Laisser tomber juste le sous domaine (en gardant l'enjeux)
       if(any(cond_sDomEnj)){
         
         #Extraire l'ID des courbes qui sont semblables
@@ -710,8 +762,11 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_sDomEnj) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond1"
         
-        #5.3.3.1 Laisser tomber juste le sous domaine
+        
+        #5.3.3.2 Laisser tomber juste le sous domaine
       } else if (any(cond_sDom)){ 
         
         #Extraire l'ID des courbes qui sont semblables
@@ -719,8 +774,11 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_sDom) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond1"
         
-        #5.3.3.2 Selon la famille de stattion et le TYF
+        
+        #5.3.3.3 Selon la famille de stattion et le TYF
       } else if (any(cond_famTyf)){ 
         
         #Extraire l'ID des courbes qui sont semblables
@@ -728,8 +786,11 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_famTyf) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond3"
         
-        #5.3.3.3 Selon la famille de stattion et le TYF
+        
+        #5.3.3.4 Selon la famille de stattion et le TYF
       } else if (any(cond_grandTyfCouv)){ 
         
         #Extraire l'ID des courbes qui sont semblables
@@ -737,8 +798,11 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_grandTyfCouv) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond4"
         
-        #5.3.3.4 Selon le type de couvert         
+        
+        #5.3.3.5 Selon le type de couvert         
       } else if (any(cond_couv)){ 
         
         #Extraire l'ID des courbes qui sont semblables
@@ -746,8 +810,11 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_couv) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond5"
         
-        #5.3.3.5 Selon le TYF
+        
+        #5.3.3.6 Selon le TYF
       } else if (any(cond_tyf)){ 
         
         #Extraire l'ID des courbes qui sont semblables
@@ -755,8 +822,11 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_tyf) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond6"
         
-        #5.3.3.6 Selon le groupe de station
+        
+        #5.3.3.7 Selon le groupe de station
       } else if (any(cond_grStat)){
         
         #Extraire l'ID des courbes qui sont semblables
@@ -764,8 +834,11 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_grStat) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond7"
         
-        #5.3.3.7 Finalement, si on a rien on sélectionne selon le SDOM_BIO
+        
+        #5.3.3.8 Finalement, si on a rien on sélectionne selon le SDOM_BIO
       } else if (any(cond_SDomSeule)){
         
         #Extraire l'ID des courbes qui sont semblables
@@ -773,6 +846,8 @@ faireKnn <- function(dfDonneesPoly,
           df_tempCatCourbes %>% filter(cond_SDomSeule) %>% 
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
+        #Mettre à jour le numéro de la condition utilisée
+        condNumero <- "cond8"
       }
       
       
@@ -793,8 +868,8 @@ faireKnn <- function(dfDonneesPoly,
         catCourbes %>%
         filter(ID_COURBE %in% courbesPetites[i, "ID_COURBE"]) %>%
         select(VOL_HA) %>% unlist %>% unname
-      
   
+ 
       #5.3.6 Maintenant on calcule les distances
       tempDtw <-
         tsclust(series = list_tempCatCourbes,
@@ -867,6 +942,7 @@ faireKnn <- function(dfDonneesPoly,
       #la courbe qui a été attribuée à ce groupe évolutif
       courbesPetites$idEquiv[i] <- idPlusProche
       courbesPetites$courbeEquiv[i] <- courbePlusProche
+      courbesPetites$condNumero[i] <- condNumero
       
     }
     
@@ -875,7 +951,7 @@ faireKnn <- function(dfDonneesPoly,
     courbesPetites <- 
       courbesPetites %>% 
       transmute(courbeOri = COURBE, 
-                courbeEquiv, classec, sumSup)
+                courbeEquiv, classec, sumSup, condNumero)
     
     #5.7 Faire un petit avertissement pour dire au utilisateur si on a 
     #changé les courbes de quelques groupes évolutifs
@@ -1175,34 +1251,14 @@ faireKnn <- function(dfDonneesPoly,
                                    as.character(Enjeux_str[1]))) %>% 
     select(-sumSup)
   
-  
+ 
   #6.9.3 Joindre l'enjeux confirmé au jeu de données principal
   donneesCluster <- left_join(donneesCluster, enjeuxConf,
                               by = c("ID_COURBE", "clusterAttach", "Enjeux_str")) 
   
   
-  #6.10 Créer les 2 dataframes d'extrant: un avec l'id des polygones et le point d'attachement
+  #6.10 Créer les 2 des 3 dataframes d'extrant: un avec l'id des polygones et le point d'attachement
   #sur la courbe; et un avec la COURBE et le point d'attachement sur la courbe
-  # #6.10.0 Pour nous assurer que tous les joins sont valides, on va transformer
-  # #les points d'attache dans des variables de caractères avec 2 points décimaux
-  # #(e.g. 10.20 normalement est convertie en 10.2)
-  # browser()
-  # donneesCluster <- 
-  #   donneesCluster %>%
-  #   mutate(clusterAttach = format(clusterAttach, nsmall = 2))
-  # 
-  # catCourbes <-
-  #   catCourbes %>%
-  #   mutate(VOL_HA = format(VOL_HA, nsmall = 2))
-  # 
-  # asdCat <- 
-  #   catCourbes %>%
-  #   mutate(#VOL_HA = as.character(VOL_HA),
-  #          VOL_HA = format(VOL_HA, nsmall = 2))
-  # 
-  # #de la bonne ordre des points d'attachement, on va les
-  # #convertir temporairement dans une variable numérique (sinon "102.3" viendrait avant
-  # #20.1 dans une ordre alphabétique)
   #6.10.0 Ajouter l'âge d'attachement au jeu de données principal
   donneesCluster <- 
     left_join(donneesCluster,
