@@ -84,19 +84,19 @@ testData <-
 testCourbes6O <-
   read_csv(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
                      "Script_Plusieurs_SDOMs\\7MP\\Inputs",
-                     "Courbes_6ouest_Horizon_   27 octobre 2017.csv"))
+                     "Courbes_6ouest_Horizon_   30 octobre 2017.csv"))
 
 #Catalogue des courbes 5O
 testCourbes5O <-
   read_csv(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
                      "Script_Plusieurs_SDOMs\\7MP\\Inputs",
-                     "Courbes_5ouest_Horizon_   27 octobre 2017.csv"))
+                     "Courbes_5ouest_Horizon_   6 novembre 2017.csv"))
 
 #Catalogue des courbes 5O
 testCourbes6E <-
-  read.dbf(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
+  read_csv(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
                      "Script_Plusieurs_SDOMs\\7MP\\Inputs",
-                     "Courbes_6est_Horizon_   27 octobre 2017.dbf"))
+                     "Courbes_6est_Horizon_   30 octobre 2017.csv"))
 
 
 #Joindre les catalogues
@@ -112,63 +112,78 @@ testCatCourbes <-
   #Calculer le volume total (i.e. la somme du volume de chaque essence;
   #dans le format HORIZON des courbes, chaque ligne a le volume d'une
   #essence donnée et on veut la somme de toutes les essences)
-  group_by(NOM_FAMC, DESC_FAMC, gr_station, tyf, enjeux, duree_crb, age, 
-           AGE_EXPL, AGE_BRIS) %>%
+  group_by(NOM_FAMC, DESC_FAMC, gr_station, tyf, enjeux, classe, 
+           duree_crb, age, AGE_EXPL, AGE_BRIS) %>%
   summarize(VOL_HA = sum(VOL_HA)) %>%
   group_by(NOM_FAMC, DESC_FAMC, gr_station, tyf) %>% 
   
-  ####################################################################
-#Générer des variables manquantes
-mutate(classec = which(VOL_HA == max(VOL_HA))[1],
+####################################################################
+  #Générer des variables manquantes
+  mutate(classec = which(VOL_HA == max(VOL_HA))[1],
        rowNumber = 1:n(),
-       classec = ifelse(rowNumber <= classec, "1", "2"),
-       extrapol = 1:n(),
-       extrapol = ifelse(extrapol <= 5, "oui", "non")) %>% 
+       classec = ifelse(rowNumber <= classec, "1", "2")) %>% 
+       # extrapol = 1:n(),
+       # extrapol = ifelse(extrapol <= 5, "oui", "non")) %>% 
   select(-rowNumber) %>% 
-  ####################################################################
-ungroup() %>% 
+####################################################################
+  ungroup() %>% 
   rename(GR_STATION = gr_station,
          TYF = tyf) %>% 
   mutate(SDOM = substr(DESC_FAMC, 1,2))
 
 
+###################################################################
+#Une autre patch. Très rarement, une courbe peut pas avoir de classec
+#avec la condition que j'ai fait (i.e. le dernier point de la courbe est
+#le point qui a le volume le plus gros). Quand ça arrive, on va dire 
+#que la sénescence commence à l'âge 90
+testCatCourbes <- 
+  testCatCourbes %>% 
+  group_by(NOM_FAMC, DESC_FAMC, GR_STATION, TYF) %>% 
+  mutate(classec = ifelse(!"2" %in% classec & age >= 90, "2", classec)) %>% 
+  ungroup()
 
-###################################################################################
-###################################################################################
-###################################################################################
-
-miss5O <- testData %>% filter(SDOM_BIO %in% "5O", 
-                              !GE1 %in% testCourbes5O$DESC_FAMC &
-                                !GE3 %in% testCourbes5O$DESC_FAMC & 
-                                !GE5 %in% testCourbes5O$DESC_FAMC) %>%
-  select(GE1) %>% unlist %>% unname %>% unique
-
-miss6O <- testData %>% filter(SDOM_BIO %in% "6O", 
-                              !GE1 %in% testCourbes6O$DESC_FAMC &
-                                !GE3 %in% testCourbes6O$DESC_FAMC & 
-                                !GE5 %in% testCourbes6O$DESC_FAMC) %>%
-  select(GE1) %>% unlist %>% unname %>% unique
-
-miss6E <- testData %>% filter(SDOM_BIO %in% "6E", 
-                              !GE1 %in% testCourbes6E$DESC_FAMC &
-                                !GE3 %in% testCourbes6E$DESC_FAMC & 
-                                !GE5 %in% testCourbes6E$DESC_FAMC) %>%
-  select(GE1) %>% unlist %>% unname %>% unique
+###################################################################
 
 
-testData <- 
-  testData %>% 
-  filter(!GE1 %in% c(as.character(miss5O), as.character(miss6O),
-                     as.character(miss6E))) %>% 
-  # rename(v_TOT = gTOT,
-  #        GR_STATION = gr_stat) %>% 
-  
-  
-  #Enlever les peuplements improductifs
-  filter(!Improd %in% "_SNAT",
-         !GE1 %in% "6O_RES_RH_Ep_En95",
-         !is.na(GE3))   #quelques polygones 6E avaient des GE3 et GE5 NAs
-
+##############################################################################
+##############################################################################
+##############################################################################
+#Ces cas seront traités par Francis avant qu'on fasse rouler les scripts.
+# miss5O <- testData %>% filter(SDOM_BIO %in% "5O", 
+#                               !GE1 %in% testCourbes5O$DESC_FAMC &
+#                                 !GE3 %in% testCourbes5O$DESC_FAMC & 
+#                                 !GE5 %in% testCourbes5O$DESC_FAMC) %>%
+#   select(GE1) %>% unlist %>% unname %>% unique
+# 
+# miss6O <- testData %>% filter(SDOM_BIO %in% "6O", 
+#                               !GE1 %in% testCourbes6O$DESC_FAMC &
+#                                 !GE3 %in% testCourbes6O$DESC_FAMC & 
+#                                 !GE5 %in% testCourbes6O$DESC_FAMC) %>%
+#   select(GE1) %>% unlist %>% unname %>% unique
+# 
+# miss6E <- testData %>% filter(SDOM_BIO %in% "6E", 
+#                               !GE1 %in% testCourbes6E$DESC_FAMC &
+#                                 !GE3 %in% testCourbes6E$DESC_FAMC & 
+#                                 !GE5 %in% testCourbes6E$DESC_FAMC) %>%
+#   select(GE1) %>% unlist %>% unname %>% unique
+# 
+# 
+# testData <- 
+#   testData %>% 
+#   filter(!GE1 %in% c(as.character(miss5O), as.character(miss6O),
+#                      as.character(miss6E))) %>% 
+#   # rename(v_TOT = gTOT,
+#   #        GR_STATION = gr_stat) %>% 
+#   
+#   
+#   #Enlever les peuplements improductifs
+#   filter(!Improd %in% "_SNAT",
+#          !GE1 %in% "6O_RES_RH_Ep_En95",
+#          !is.na(GE3))   #quelques polygones 6E avaient des GE3 et GE5 NAs
+##############################################################################
+##############################################################################
+##############################################################################
 
 
 
@@ -201,12 +216,11 @@ testData <-
 #  clusters par groupe est spécifiée par les arguments "nombreMaxClusterCroissance"
 #  (courbes de croissance) et "nombreMaxClusterSenescence" (courbes de sénescence).
 #  Une description plus détaillée du processus est présente au début de la section 4.
-# time1 <- proc.time()
 source(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
-                 "Script_Plusieurs_SDOMs\\7MP",
+                 "Script_Plusieurs_SDOMs\\7MP\\7MP_Git",
                  "Fonction_MultiSD_KNN.R"))
 
-supMin_courbe <- 20000
+supMin_courbe <- 5000
 supMin_pointAttach <- 1000
 
 exempleKNN <- 
@@ -216,8 +230,6 @@ exempleKNN <-
            supMin_courbe = supMin_courbe,
            nombreMaxClusterCroissance = 10, 
            nombreMaxClusterSenescence = 5)
-
-# proc.time() - time1
 
 
 
@@ -235,6 +247,17 @@ dfCourbesPetites <- exempleKNN$dfCourbesPetites
 #3.2 Faire le join avec le jeux de données initiel
 tempPoly <- left_join(testData, dfPoly, 
                       by = c("ID_BFEC"))
+
+
+##############################################################################
+##############################################################################
+#L'exemple du script finit ici.
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
+##############################################################################
 
 #3.3 Enregistrer les extrants
 write_csv(tempPoly, 
@@ -254,9 +277,6 @@ write_csv(dfCourbesPetites,
                     "Script_Plusieurs_SDOMs\\7MP\\Test outputs", "Test 8551",
                     paste0("petit8551_courbe", supMin_courbe,"_",
                            supMin_pointAttach, ".csv")))
-
-
-
 
 
 
@@ -422,7 +442,7 @@ for(i in unique(ratio$essence)){
 
 for(i in unique(ratio$essence)){
   
-  tempFig <- 
+  tempFig <-  
     ggplot(ratio,# %>% filter(essence %in% i), 
            aes(x = essence, y = biais, 
                fill = type)) +
