@@ -425,50 +425,7 @@ faireKnn <- function(dfDonneesPoly,
     filter(!is.na(DESC_FAMC_Comp)) %>% 
     select(-COURBE) %>%
     rename(COURBE = DESC_FAMC_Comp)
-  
 
-  ##########################################################################
-  ##########################################################################
-  #NOPE: ON N'EST PAS SÛRS D'AVOIR TOUJOURS LA COURBE LA PLUS SPÉCIFIQUE DISPONIBLE
-  # #3.5 Si la courbe plus générale est toujours trop petite, on va la 
-  # #re-remplacer avec la courbe la plus spéfique (GE5) pour après aller
-  # #trouver la courbe la plus semblable
-  # #3.5.1 Identifier les courbes qui sont toujours trop petites
-  # courbeGenPetite <- 
-  #   dfDonneesPoly %>% 
-  #   group_by(COURBE) %>% 
-  #   summarise(sumSup = sum(SUPERFICIE)) %>% 
-  #   filter(sumSup < supMin_courbe) %>% 
-  #   distinct(COURBE) %>% unlist %>% unname %>% as.character()
-  # 
-  # #3.5.2 Changer la nomenclature de ces courbes
-  # dfDonneesPoly <- 
-  #   dfDonneesPoly %>% 
-  #   mutate(COURBE = ifelse(COURBE %in% courbeGenPetite, as.character(GE5),
-  #                          COURBE))
-  
-  #######Patch temporaire
-  ############################################################
-  ############################################################
-  # #Les courbes 6O_RES_R_EpFx_NA, 6O_RES_RH_EpRx_NA et 6O_RFi_F_PeRx_NA
-  # #n'existent pas
-  # dfDonneesPoly$COURBE[dfDonneesPoly$COURBE %in% "6O_RES_R_EpFx_NA"] <- 
-  #   "6O_RES_R_EpFx_NA_v12"
-  # dfDonneesPoly$COURBE[dfDonneesPoly$COURBE %in% "6O_RES_RH_EpRx_NA"] <- 
-  #   "6O_RES_RH_EpRx_NA_v12"
-  # dfDonneesPoly$COURBE[dfDonneesPoly$COURBE %in% "6O_RFi_F_PeRx_NA"] <- 
-  #   "6O_RFi_F_PeRx_NA_v12"
-  # dfDonneesPoly$COURBE[dfDonneesPoly$COURBE %in% "6E_RFi_F_SbRx_NA"] <- 
-  #   "6E_RFi_F_SbRx_NA_v12"
-  # dfDonneesPoly$COURBE[dfDonneesPoly$COURBE %in% "6O_RES_RH_Ep_NA"] <- 
-  #   "6O_RES_R_Ep_NA_v12"
-  
-  ############################################################
-  ############################################################
-  
-  ##########################################################################
-  ##########################################################################
-  
   
   #3.6 Déterminer la classec du polygone
   #3.6.1 Calculer le point maximale de chaque courbe
@@ -515,18 +472,6 @@ faireKnn <- function(dfDonneesPoly,
                               paste0(DESC_FAMC, "_c", classec),
                               paste0(DESC_FAMC, "_c", classec)))
   
-    # left_join(catCourbes %>%
-    #             mutate(DESC_FAMC = DESC_FAMC,
-    #                    classec = as.character(classec)),
-    #           #On sélectionne les variables pour le join. Il faut aussi
-    #           #sélectionner les combinaisons uniques des variables pour
-    #           #pas ajouter des lignes au catalogue des courbes
-    #           dfDonneesPoly %>%
-    #             distinct(COURBE, classec, ID_COURBE) %>%
-    #             mutate(classec = as.character(classec)),
-    #           #Variables a utiliser dans le join
-    #           by = c("DESC_FAMC" = "COURBE", "classec"))
-  
   
   
   #5.Assigner les polygones qui sont dans des groupes évolutifs plus petits que la
@@ -561,28 +506,7 @@ faireKnn <- function(dfDonneesPoly,
                                        "F",
                                        "M"))
   
-  #IL ME MANQUE LE TABLEAU DE CONVERSION!!!
-  ################################################################
-  ################################################################
-  # #5.1 Identifier les groupes évolutifs qui sont trop petits
-  # courbesPetites <-
-  #   dfDonneesPoly %>%
-  #   
-  #   #5.1.1 Calculer la superficie des groupes évolutifs 
-  #   #(courbe + côté de la courbe = ID_COURBE)
-  #   group_by(ID_COURBE, COURBE, classec, SDOM_BIO, FAM_STAT, GR_STATION, 
-  #            TYF, Enjeux_evo, typeCouv, grandTYF) %>%
-  #   summarise(sumSup = sum(SUPERFICIE)) %>%
-  #   ungroup %>%
-  #   
-  #   #5.1.2 Filtrer ceux qui sont plus petits
-  #   filter(sumSup < supMin_courbe) %>% 
-  #   
-  #   #5.1.3 Créer des colonnes où on peut enregistrer les courbes auxquelles
-  #   #ce groupes évolutifs trop petits ont été attachés
-  #   mutate(courbeEquiv = NA,
-  #          idEquiv = NA)
-  ################################################################
+  
   #5.1 Identifier les groupes évolutifs dont la courbe complète
   #(i.e. les 2 côtés) a moins que supMin_courbe
   idCourbesPetites <-
@@ -610,7 +534,7 @@ faireKnn <- function(dfDonneesPoly,
     distinct(COURBE, classec)
   
  
-  #5.1.4. Joindre ces 2 jeux de données ensemble
+  #5.1.4. Identifier les polygones qui font partie de ces 2 jeux de données 
   courbesPetites <- 
     dfDonneesPoly %>% 
     filter(COURBE %in% idCourbesPetites |
@@ -618,17 +542,31 @@ faireKnn <- function(dfDonneesPoly,
              paste(idCotePetit$COURBE, idCotePetit$classec)) %>% 
 
     
-    # #5.1.6 Chercher les courbes plus spécifiques (e.g. v1 au lieu de la générale)
-    # #5.1.6.1 Re-ajouter les courbes compromis en utilisant la GE5 au lieu
+    # #5.1.5 Chercher les courbes plus spécifiques (e.g. v1 au lieu de la générale)
+    # #5.1.5.1 Re-ajouter les courbes compromis en utilisant la GE5 au lieu
     # #de la courbe choisie par l'algorithme
     left_join(compromisCatCourbes, by = c("GE5" = "DESC_FAMC")) %>%
-    mutate(COURBE = DESC_FAMC_Comp, ####ifelse(is.na(DESC_FAMC_Comp),
-                           ###as.character(GE3), as.character(DESC_FAMC_Comp)),
-           ID_COURBE = paste0(COURBE, "_c", classec)) %>%
+    
+    #5.1.5.2 Changer le nom de la courbe selon le compromis trouvé
+    mutate(COURBE = DESC_FAMC_Comp, 
+           ID_COURBE = paste0(COURBE, "_c", classec))
+  
+  
+  #5.1.5.3 Mettre les variables "COURBE" et "ID_COURBE" de ces variables
+  #à jour dans le jeu de données principal. Pour faire ça, il faut enlever
+  #ces polygones du jeu de donnèes et ajouter le jeu de données des
+  #courbes petites (où on vient de mettre ces variables à jour)
+  dfDonneesPoly <- 
+    dfDonneesPoly %>% 
+    filter(!ID_BFEC %in% courbesPetites$ID_BFEC) %>% 
+    bind_rows(courbesPetites) %>% 
+    arrange(ID_BFEC)
 
 
-    #5.1.7 Calculer la superficie des groupes évolutifs
+    #5.1.6 Calculer la superficie des groupes évolutifs
     #(courbe + côté de la courbe = ID_COURBE)
+  courbesPetites <- 
+    courbesPetites %>% 
     group_by(ID_COURBE, COURBE, classec, SDOM_BIO, FAM_STAT, GR_STATION,
              TYF, Enjeux_evo, typeCouv, grandTYF) %>%
     summarise(sumSup = sum(SUPERFICIE)) %>%
@@ -651,8 +589,10 @@ faireKnn <- function(dfDonneesPoly,
       catCourbes %>%
       
       #5.2.2 On enlève les groupes évolutifs qui ne sont pas dans le jeu de
-      #données (ID_COURBE == NA) et qui sont trop petits (courbesPetites$ID_COURBE)
-      filter(!ID_COURBE %in% c(NA, courbesPetites$ID_COURBE),
+      filter(ID_COURBE %in% dfDonneesPoly$ID_COURBE,
+             
+             #Et on enlève ceux qui appartiennent à des courbes petites
+             !ID_COURBE %in% c(NA, courbesPetites$ID_COURBE),
              
              #3.2.3 Sélectionner seulement les points non-extrapolés
              extrapol %in% "non") %>%
@@ -854,10 +794,7 @@ faireKnn <- function(dfDonneesPoly,
         filter(ID_COURBE %in% courbesPetites[i, "ID_COURBE"]) %>%
         select(VOL_HA) %>% unlist %>% unname
       
-      ###################
-      if(any(sapply(list_tempCatCourbes, length) < 1)){browser()}
-      ###################
-      
+  
       #5.3.6 Maintenant on calcule les distances
       tempDtw <-
         tsclust(series = list_tempCatCourbes,
@@ -1002,24 +939,6 @@ faireKnn <- function(dfDonneesPoly,
       #6.3.3 Sélectionner la colonne du volume
       select(VOL_HA) %>% unlist %>% unname
     
-    #########################################
-    if(length(tempAttach) == 0){ ####browser()}
-      
-      if(i == "6O_RES_RH_Ep_NA_cNA"){
-        i <- "6O_RES_R_Ep_NA_v12_c1"
-        tempDonnees <- dfDonneesPoly %>% filter(ID_COURBE %in% i)
-        tempAttach <-
-          catCourbes %>%
-          #6.3.1 Sélectionner la courbe correcte
-          filter(DESC_FAMC %in% unique(tempDonnees$COURBE)[1],
-                 #6.3.2 Sélectionner le bon côté de la courbe
-                 classec %in% unique(tempDonnees$classec)[1]) %>%
-          #6.3.3 Sélectionner la colonne du volume
-          select(VOL_HA) %>% unlist %>% unname
-      } else {browser()}
-      
-    }
-    #########################################
     
     #6.4 Il faut contrôler le nombre de clusters maximale qu'on a dans chaque groupe. 
     #6.4.1 D'abord, on sélectionne le nombre maximal de clusters selon le côté
@@ -1273,8 +1192,16 @@ faireKnn <- function(dfDonneesPoly,
   #6.10.1 Créer le dataframe des polygones en sélectionnant les 2 colonnes qu'on veut
   dfPoly <- 
     donneesCluster %>%
-    select(ID_BFEC, classec, COURBE, Enjeux_strConf, clusterAttach)
-  
+    select(ID_BFEC, classec, COURBE, Enjeux_strConf, clusterAttach) %>% 
+    mutate(clusterAttach = format(clusterAttach, nsmall = 2))
+  # 
+  # catCourbes <- 
+  #   catCourbes %>% 
+  #   mutate(VOL_HA = format(VOL_HA, nsmall = 2))
+  # 
+  # asd <- left_join(dfPoly, 
+  #                  catCourbes %>% select(ID_COURBE, VOL_HA, age),
+  #                  by = c("ID_COURBE", "clusterAttach" = "VOL_HA"))
   
   #6.10.2 Créer le dataframe des strates
   dfStrates <- 
