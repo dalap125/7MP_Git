@@ -703,47 +703,43 @@ faireKnn <- function(dfDonneesPoly,
         paste(courbesPetites$GR_STATION[i], courbesPetites$TYF[i],
               courbesPetites$Enjeux_evo[i], sep = "_")
       
-      #5.3.2.2 Courbe équivalente dans un autre sous domaine SANS l'enjeux 
+      #5.3.2.2 Courbe équivalente dans le même groupe de station et TYF
       cond_sDom <- 
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$TYF, sep = "_") %in%
         paste(courbesPetites$GR_STATION[i], courbesPetites$TYF[i], sep = "_")
-            
       
-      #5.3.2.3 Courbe équivalente dans le même sous-domaine, famStat et TYF
+      
+      #5.3.2.3 Courbe équivalente dans le même famStat et TYF
       cond_famTyf <-
-        paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$FAM_STAT,
-              df_tempCatCourbes$TYF, sep = "_") %in%
-        paste(courbesPetites$SDOM_BIO[i], courbesPetites$GR_STATION[i],
-              courbesPetites$TYF[i], sep = "_")
+        paste(df_tempCatCourbes$FAM_STAT, df_tempCatCourbes$TYF, sep = "_") %in%
+        paste(courbesPetites$FAM_STAT[i], courbesPetites$TYF[i], sep = "_")
       
       
-      #5.3.2.4 Courbe équivalente dans le même sous-domaine, grStat, type de couvert,
-      #mais un TYF différent 
+      #5.3.2.4 Courbe équivalente dans le même grStat, type de couvert,
+      #mais un grand TYF différent 
       cond_grandTyfCouv <-
-        paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$GR_STATION,
-              df_tempCatCourbes$typeCouv, df_tempCatCourbes$grandTYF,sep = "_") %in%
-        paste(courbesPetites$SDOM_BIO[i], courbesPetites$GR_STATION[i],
-              courbesPetites$typeCouv[i], courbesPetites$grandTYF[i],sep = "_") 
+        paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$typeCouv, 
+              df_tempCatCourbes$grandTYF,sep = "_") %in%
+        paste(courbesPetites$GR_STATION[i], courbesPetites$typeCouv[i], 
+              courbesPetites$grandTYF[i],sep = "_") 
       
       
-      #5.3.2.5 Courbe équivalente dans le même sous-domaine, grStat et type de couvert
+      #5.3.2.5 Courbe équivalente dans le même grStat et type de couvert
       cond_couv <-
-        paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$GR_STATION,
-              df_tempCatCourbes$typeCouv, sep = "_") %in%
-        paste(courbesPetites$SDOM_BIO[i], courbesPetites$GR_STATION[i],
-              courbesPetites$typeCouv[i],sep = "_")
+        paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$typeCouv, sep = "_") %in%
+        paste(courbesPetites$GR_STATION[i], courbesPetites$typeCouv[i],sep = "_")
       
       
-      #5.3.2.6 Courbe équivalente dans le même sous-domaine et TYF
+      #5.3.2.6 Courbe équivalente dans le même TYF
       cond_tyf <-
-        paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$TYF, sep = "_") %in%
-        paste(courbesPetites$SDOM_BIO[i], courbesPetites$TYF[i], sep = "_")
+        paste(df_tempCatCourbes$TYF, sep = "_") %in%
+        paste(courbesPetites$TYF[i], sep = "_")
       
       
-      #5.3.2.7 Courbe équivalente dans le même sous-domaine et TYF
+      #5.3.2.7 Courbe équivalente dans le même groupe de station
       cond_grStat <-
-        paste(df_tempCatCourbes$SDOM, df_tempCatCourbes$GR_STATION, sep = "_") %in% 
-        paste(courbesPetites$SDOM_BIO[i], courbesPetites$GR_STATION[i], sep = "_") 
+        paste(df_tempCatCourbes$GR_STATION, sep = "_") %in% 
+        paste(courbesPetites$GR_STATION[i], sep = "_") 
       
       
       #5.3.2.8 N'importe quel courbe dans le même sous-domaine 
@@ -1300,7 +1296,7 @@ faireKnn <- function(dfDonneesPoly,
   
   
   #6.10 Faire "return" de cette liste pour finir la fonction
-  return(listeKnn)  
+  return(listeKnn)   
   
 }
 
