@@ -79,8 +79,7 @@ faireKnn <- function(dfDonneesPoly,
   #2.1 Vérifier que toutes les variables dont on a besoin sont la
   #2.1.1 Catalogue des courbes
   #2.1.1.1 Identifier les variables nécessaires
-  varsCatCourbes <- c("DESC_FAMC", "age", 
-                      "GR_STATION", "TYF", "enjeux",   #l'enjeux stratégique (e.g. En95)
+  varsCatCourbes <- c("NOM_FAMC", "DESC_FAMC", "age", 
                       "classe",   #classe de volume (v1, v2,...)
                       "VOL_HA", "classec")     #Le côté de la courbe
   
@@ -103,10 +102,8 @@ faireKnn <- function(dfDonneesPoly,
   
   #2.1.2 Jeu de données
   #2.1.2.1 Identifier les variables nécessaires
-  varsDonneesPoly <- c("ID_BFEC", "v_TOT", "SDOM_BIO", "GR_STATION", 
-                       "TYF", "Enjeux_evo", "Enjeux_str", "Improd",
-                       "cl_vol3", "cl_vol5", "GE1", "GE3", "GE5",
-                       "clage", "SUPERFICIE")   
+  varsDonneesPoly <- c("ID_BFEC", "v_TOT", "Enjeux_str",
+                       "COURBE", "classec", "SUPERFICIE")   
   
   
   
@@ -136,7 +133,7 @@ faireKnn <- function(dfDonneesPoly,
     volManq <- 
       dfDonneesPoly %>% 
       filter(v_TOT %in% NA) %>%   #Trouver les lignes avec NA
-      select(GE5) %>% unlist() %>% unname() %>%  #Sélectionner la colonne "COURBE"
+      select(COURBE) %>% unlist() %>% unname() %>%  #Sélectionner la colonne "COURBE"
       as.character()
     
     
@@ -205,8 +202,8 @@ faireKnn <- function(dfDonneesPoly,
   
   
   dfDonneesPoly <- 
-    dfDonneesPoly %>% select(ID_BFEC, ID_COURBE, COURBE, classec, Improd,
-                             Enjeux_evo, Enjeux_str, SUPERFICIE, v_TOT)
+    dfDonneesPoly %>% select(ID_BFEC, ID_COURBE, COURBE, classec,
+                             Enjeux_str, SUPERFICIE, v_TOT)
   
   
   #4.1 D'abord on initialise une boucle où on va faire le clustering par groupe ID_COURBE
