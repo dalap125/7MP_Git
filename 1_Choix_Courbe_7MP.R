@@ -216,9 +216,9 @@ choixCourbe <-
       varsManq <- varsCatCourbes[!varsCatCourbes %in% 
                                    names(catCourbes)]
       
-      #Et on arr?te la fonction
+      #Et on arréte la fonction
       stop("La ou les variables ", paste(varsManq, collapse = ", "),
-           " ne sont pas pr?sentes dans le jeu de donn?es d?fini par 'catCourbes'.",
+           " ne sont pas présentes dans le jeu de données défini par 'catCourbes'.",
            "Faites attention que cette fonction est sensible aux minuscules ",
            "et aux majuscules.")
     }
