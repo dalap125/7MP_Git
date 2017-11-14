@@ -872,7 +872,7 @@ faireKnn <- function(dfDonneesPoly,
         filter(ID_COURBE %in% courbesPetites[i, "ID_COURBE"]) %>%
         select(VOL_HA) %>% unlist %>% unname
       
-      #if(any(sapply(list_tempCatCourbes, length) < 1)){browser()}
+      
       #5.4.6 Maintenant on calcule les distances
       tempDtw <-
         tsclust(series = list_tempCatCourbes,
@@ -967,7 +967,7 @@ faireKnn <- function(dfDonneesPoly,
     
   }
   
-  browser()
+
   
   
   #6. Le clustering avec k-NN (k plus proches voisins)
@@ -1264,9 +1264,23 @@ faireKnn <- function(dfDonneesPoly,
                               by = c("ID_COURBE", "clusterAttach", "Enjeux_str")) 
   
   
-  #6.10 Créer les 2 des 3 dataframes d'extrant: un avec l'id des polygones et le point d'attachement
-  #sur la courbe; et un avec la COURBE et le point d'attachement sur la courbe
-  #6.10.0 Ajouter l'âge d'attachement au jeu de données principal
+  #7. Ajouter le NOM_FAMC du catalogue de courbes
+  #7.1 Sélectionner les colonnes qu'on veut
+  nomFam <-
+    catCourbes %>%
+    select(DESC_FAMC, NOM_FAMC) %>%
+    distinct()
+  
+  #7.2 Faire le join
+  donneesCluster <- 
+    left_join(donneesCluster, nomFam, by = c("COURBE" = "DESC_FAMC"))
+  
+  
+  
+  #8. Créer les 2 des 3 dataframes d'extrant: un avec l'id des polygones et 
+  #le point d'attachement sur la courbe; et un avec la COURBE et le point 
+  #d'attachement sur la courbe
+  #8.1 Ajouter l'âge d'attachement au jeu de données principal
   donneesCluster <- 
     left_join(donneesCluster,
               catCourbes %>% transmute(ID_COURBE, 
@@ -1275,14 +1289,15 @@ faireKnn <- function(dfDonneesPoly,
               by = c("ID_COURBE", "clusterAttach"))
   
   
-  #6.10.1 Créer le dataframe des polygones en sélectionnant les 2 colonnes qu'on 
+  #8.2 Créer le dataframe des polygones en sélectionnant les 2 colonnes qu'on 
   #veut. Il faut d'abord joindre l'âge de la courbe au point d'attachement
   dfPoly <- 
     donneesCluster %>% 
-    select(ID_BFEC, classec, COURBE, Enjeux_strConf, clusterAttach, ageAttach)
+    select(ID_BFEC, classec, COURBE, NOM_FAMC, 
+           Enjeux_strConf, clusterAttach, ageAttach)
   
   
-  #6.10.2 Créer le dataframe des strates
+  #8.3 Créer le dataframe des strates
   dfStrates <- 
     donneesCluster %>% 
     
