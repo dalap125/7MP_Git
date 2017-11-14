@@ -280,18 +280,30 @@ choixCourbe <-
          "et aux majuscules.")
   }
   
+<<<<<<< HEAD
  
+=======
+  
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
   #2.3 Vérifier les données manquantes
   #Il faut aussi vérifier qu'on n'a pas des données de volume manquantes. Ça devrait
   #jamais arriver non plus.
   #2.3.1 Si au moins un polygone n'a pas une valeur de volume total
   if(any(is.na(dfDonneesPoly$v_TOT)) ){
     
+<<<<<<< HEAD
     #2.3.2 Identifier les groupes où ça a arrivé  
     volManq <- 
       dfDonneesPoly %>% 
       filter(v_TOT %in% NA) %>%   #Trouver les lignes avec NA
       select(GE5) %>% unlist() %>% unname() %>%  #Sélectionner la colonne "COURBE"
+=======
+    #2.3.2 Identifier les groupes où ça a arrivé 
+    volManq <- 
+      dfDonneesPoly %>% 
+      filter(v_TOT %in% NA) %>%   #Trouver les lignes avec NA
+      select(COURBE) %>% unlist() %>% unname() %>%  #Sélectionner la colonne "COURBE"
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
       as.character()
     
     
@@ -305,7 +317,11 @@ choixCourbe <-
   }
   
   
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
   #3. Gérer l'échelle de la courbe: i.e est-ce qu'on utilise une courbe v1,
   #v12 ou génerale?
   #3.0 Crisser (poliment) les v5 dans les v4 si leur superficie est plus 
@@ -420,7 +436,11 @@ choixCourbe <-
     #3.5.6 Pour enlever des doublons SNAT
     distinct()
   
+<<<<<<< HEAD
  
+=======
+  
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
   #3.5.7 Utiliser ce catalogue pour trouver les courbes de compromis des
   #polygones
   dfDonneesPoly <- left_join(dfDonneesPoly,
@@ -437,6 +457,7 @@ choixCourbe <-
             " n'existent pas dans le catalogue de courbes.")
   }
   
+<<<<<<< HEAD
 
   #3.5.9 Changer le nom de la variable
   dfDonneesPoly <- 
@@ -446,6 +467,17 @@ choixCourbe <-
     rename(COURBE = DESC_FAMC_Comp)
   
 
+=======
+  
+  #3.5.9 Changer le nom de la variable
+  dfDonneesPoly <- 
+    dfDonneesPoly %>% 
+    select(-COURBE) %>%
+    rename(COURBE_ORI = COURBE,
+           COURBE = DESC_FAMC_Comp)
+  
+  
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
   #3.6 Déterminer la classec du polygone: age inférieure ou égale à 70: classec 1
   dfDonneesPoly <-
     dfDonneesPoly %>%
@@ -839,7 +871,11 @@ choixCourbe <-
         filter(ID_COURBE %in% courbesPetites[i, "ID_COURBE"]) %>%
         select(VOL_HA) %>% unlist %>% unname
       
+<<<<<<< HEAD
       
+=======
+      #if(any(sapply(list_tempCatCourbes, length) < 1)){browser()}
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
       #5.4.6 Maintenant on calcule les distances
       tempDtw <-
         tsclust(series = list_tempCatCourbes,
@@ -940,6 +976,11 @@ choixCourbe <-
   #6. Définir l'extrant et terminer la fonction
   #6.1 Extrant au niveau des polygones: 
   #   - ID_BFEC : l'id des polygones
+<<<<<<< HEAD
+=======
+  #   - COURBE_ORI : la courbe originale trouvée par notre algorithme 
+  #   de choix de l'échèlle,
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
   #   - COURBE : la courbe trouvée par l'algorithme de compromis des courbes 
   #   qui n'existent pas (e.g. si l'algorithme de l'échèlle avait trouvé
   #   une courbe v1, mais cette courbe n'existent pas dans le catalogue,
@@ -954,8 +995,13 @@ choixCourbe <-
   #6.2 Créer le dataframe des strates
   #6.2.1 Regrouper le jeu de données selon les variables qu'on veut
   dfStrates <- 
+<<<<<<< HEAD
     dfDonneesPoly %>% 
     group_by(COURBE, classec) %>% 
+=======
+    donneesCluster %>% 
+    group_by(COURBE, Enjeux_strConf, classec, clusterAttach, ageAttach) %>% 
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
     
     #6.2.2 Calculer la somme de la superficie de chaque GE
     summarise(SUPERFICIE = sum(SUPERFICIE)) %>% 
@@ -969,7 +1015,11 @@ choixCourbe <-
   #6.4 Faire la liste
   listeExtrant <- list(dfPoly = extrantPoly, 
                        dfStrates = dfStrates,
+<<<<<<< HEAD
                        dfCourbesPetites = as.data.frame(courbesPetites),
+=======
+                       dfCourbesPetites = as.data.frame(courbesPetites)
+>>>>>>> a2b41e30d08e323e17fef235028df81701e92802
                        courbesManq = courbesManq)
   
   return(listeExtrant)
