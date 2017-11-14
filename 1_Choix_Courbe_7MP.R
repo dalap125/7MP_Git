@@ -23,12 +23,13 @@
 #   dfDonneesPoly: dataframe des polygones qu'ont veut attacher aux courbes correspondantes. 
 #                  Chaque ligne  de ce fichier doit représenter un polygone. 
 #                
-#   courbes6O: dataframe des courbes d'attachement. Dans ce fichier chaque ligne réprésente 
-#                   un point d'attachement de la courbe d'un groupe évolutif. La colonne 
-#                   `classec` dit-nous si les points d'attachement se trouvent à la
-#                   gauche (1) ou à la droite (2) du sommet de la courbe (i.e. senescence). 
-#                   La colonne `extrapol` dit-nous si cette partie de la courbe a été 
-#                   extrapolé. Chaque courbe a plusieurs points d'attachement.  
+#   catCourbes: dataframe des courbes d'attachement de tous les sous domaines. 
+#               Dans ce fichier chaque ligne réprésente 
+#               un point d'attachement de la courbe d'un groupe évolutif. La colonne 
+#               `classec` dit-nous si les points d'attachement se trouvent à la
+#               gauche (1) ou à la droite (2) du sommet de la courbe (i.e. senescence). 
+#               La colonne `extrapol` dit-nous si cette partie de la courbe a été 
+#               extrapolé. Chaque courbe a plusieurs points d'attachement.  
 #                
 #   supMin_pointAttach: la superficie minimale de chaque cluster. Ceci doit être une valeur en HA
 #             
@@ -54,43 +55,7 @@
 
 
 
-# ####################################################
-# ####################################################
-# library(foreign)
-# library(dplyr)
-# 
-# dfDonneesPoly <- read.dbf(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
-#                                     "David", "Clustering 7MP", "Plusieurs sous-domaines", 
-#                                     "Inputs", "BD_6O.dbf"))
-# 
-# #Créer une variable ID_BFEC biddon qui n'existaient pas dans le fichier que j'avais
-# dfDonneesPoly$ID_BFEC <- 1:nrow(dfDonneesPoly)
-# 
-# #####
-# #On remplace les SDOM avec leur valeur originale (sdom_bio_O). Je pense que c'est ça,
-# #en tout cas on a juste besoin d'avoir 2 sous-domaines dans notre jeu de données
-# dfDonneesPoly$SDOM_BIO <- dfDonneesPoly$sdom_bio_o
-# 
-# #Il faut aussi adapter le champs COURBE pour reflechir le nouveau sous domaine 
-# dfDonneesPoly$COURBE <- ifelse(dfDonneesPoly$SDOM_BIO %in% "5O",
-#                                gsub(pattern = "6O",
-#                                replacement = "5O",
-#                                x = dfDonneesPoly$COURBE),
-#                                as.character(dfDonneesPoly$COURBE))
-# 
-# #####
-# #On va créer un catalogue de courbes biddon pour la 5O
-# 
-# courbes6O <- read.dbf(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
-#                                 "David", "Clustering 7MP", "Plusieurs sous-domaines", 
-#                                 "Inputs", "Courbes_6O.dbf"))
-# 
-# courbes5O <- courbes6O
-# courbes5O$courbe <- gsub("6O", "5O", courbes5O$courbe)
-
-
-
-#####
+######################################################################
 #Avant faire la fonction principale, il va falloir définir la fonction
 #qui nous vas permettre de trouver des courbes de compromis quand une 
 #courbe n'est pas présente dans le catalogue (e.g. si la courbe v4 
@@ -98,6 +63,7 @@
 #comme une v34)
 #Cette fonction va être appliqué avec la fontion do() du package dplyr au
 #catalogue de courbes regroupé par SDOM; GR_STATION, TYF et enjeux
+
 trouverCourbesCompromis <- function(valeurUniqueCourbes){
   
   #0.1 Créer catalogue avec toutes les possibilités
@@ -206,11 +172,11 @@ trouverCourbesCompromis <- function(valeurUniqueCourbes){
   
 }
 
+######################################################################
+######################################################################
 
 
-####################################################
-####################################################
-
+#Définition de la fonction principale
 choixCourbe <- 
   function(dfDonneesPoly,
            catCourbes,  #ceci doit avoir toutes les courbes des catalogues de tous 
@@ -935,10 +901,22 @@ choixCourbe <-
     }
     
     
-    #######################
     
-    #6. Définir l'extrant et terminer la fonction
-    #6.1 Extrant au niveau des polygones: 
+    #6. Ajouter le NOM_FAMC du catalogue de courbes
+    #6.1 Sélectionner les colonnes qu'on veut
+    nomFam <-
+      catCourbes %>%
+      select(DESC_FAMC, NOM_FAMC) %>%
+      distinct()
+    
+    #6.2 Faire le join
+    dfDonneesPoly <- 
+      left_join(dfDonneesPoly, nomFam, by = c("COURBE" = "DESC_FAMC"))
+    
+    
+    
+    #7. Définir l'extrant et terminer la fonction
+    #7.1 Extrant au niveau des polygones: 
     #   - ID_BFEC : l'id des polygones
     #   - COURBE : la courbe trouvée par l'algorithme de compromis des courbes 
     #   qui n'existent pas (e.g. si l'algorithme de l'échèlle avait trouvé
@@ -948,25 +926,25 @@ choixCourbe <-
     #   classec : le côté de la courbe du du polygone (1 = croissance; 2 = sénescence)
     extrantPoly <- 
       dfDonneesPoly %>% 
-      select(ID_BFEC, COURBE, classec)
+      select(ID_BFEC, COURBE, NOM_FAMC, classec)
     
     
-    #6.2 Créer le dataframe des strates
-    #6.2.1 Regrouper le jeu de données selon les variables qu'on veut
+    #7.2 Créer le dataframe des strates
+    #7.2.1 Regrouper le jeu de données selon les variables qu'on veut
     dfStrates <- 
       dfDonneesPoly %>% 
       group_by(COURBE, classec) %>% 
       
-      #6.2.2 Calculer la somme de la superficie de chaque GE
+      #7.2.2 Calculer la somme de la superficie de chaque GE
       summarise(SUPERFICIE = sum(SUPERFICIE)) %>% 
       ungroup()
     
     
-    #6.3 Un vecteur avec les courbes qui n'existent pas
+    #7.3 Un vecteur avec les courbes qui n'existent pas
     courbesManq <- unique(courbesManq$COURBE)
     
     
-    #6.4 Faire la liste
+    #7.4 Faire la liste
     listeExtrant <- list(dfPoly = extrantPoly, 
                          dfStrates = dfStrates,
                          dfCourbesPetites = as.data.frame(courbesPetites),
