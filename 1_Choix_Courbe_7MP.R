@@ -201,9 +201,10 @@ choixCourbe <-
     #2.1 Vérifier que toutes les variables dont on a besoin sont la
     #2.1.1 Catalogue des courbes
     #2.1.1.1 Identifier les variables nécessaires
-    varsCatCourbes <- c("DESC_FAMC", "age", "SDOM",    #le sous-domaine
+    varsCatCourbes <- c("NOM_FAMC", "DESC_FAMC", 
+                        "SDOM",    #le sous-domaine
                         "GR_STATION", "TYF", "enjeux",   #l'enjeux stratégique (e.g. En95)
-                        "classe",   #classe de volume (v1, v2,...)
+                        "age", "classe",   #classe de volume (v1, v2,...)
                         "VOL_HA", "classec")     #Le côté de la courbe
     
     
@@ -226,7 +227,7 @@ choixCourbe <-
     #2.1.2 Jeu de données
     #2.1.2.1 Identifier les variables nécessaires
     varsDonneesPoly <- c("ID_BFEC", "v_TOT", "SDOM_BIO", "GR_STATION", 
-                         "TYF", "Enjeux_evo", "Enjeux_str", "Improd",
+                         "TYF", "Enjeux_evo", "Improd",
                          "cl_vol3", "cl_vol5", "GE1", "GE3", "GE5",
                          "clage", "SUPERFICIE")   
     
@@ -477,7 +478,6 @@ choixCourbe <-
              GR_STATION = ifelse(grepl("SNAT", COURBE), NA, as.character(GR_STATION)),
              TYF = ifelse(grepl("SNAT", COURBE), NA, as.character(TYF)),
              Enjeux_evo = ifelse(grepl("SNAT", COURBE), NA, as.character(Enjeux_evo)),
-             Enjeux_str = ifelse(grepl("SNAT", COURBE), NA, as.character(Enjeux_str)),
              typeCouv = ifelse(grepl("SNAT", COURBE), NA, as.character(typeCouv)),
              grandTYF = ifelse(grepl("SNAT", COURBE), NA, as.character(grandTYF)))
     
