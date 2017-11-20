@@ -79,7 +79,7 @@ faireKnn <- function(dfDonneesPoly,
   #2.1 Vérifier que toutes les variables dont on a besoin sont la
   #2.1.1 Catalogue des courbes
   #2.1.1.1 Identifier les variables nécessaires
-  varsCatCourbes <- c("NOM_FAMC", "DESC_FAMC", "age", 
+  varsCatCourbes <- c("NOM_FAMC", "age", 
                       "SDOM", "GR_STATION", "TYF", "enjeux", "classe",
                       "classe",   #classe de volume (v1, v2,...)
                       "VOL_HA", "classec")     #Le côté de la courbe
