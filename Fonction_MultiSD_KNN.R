@@ -282,6 +282,48 @@ faireKnn <- function(dfDonneesPoly,
   }
   
   
+  #2.2 Ajouter des champs dont on a besoin mais qu'Olivier n'a peut être pas
+  #2.2.1 GE1
+  if(!"GE1" %in% names(dfDonneesPoly)){
+    dfDonneesPoly <- 
+      dfDonneesPoly %>% 
+      mutate(GE1 = ifelse(Improd %in% "_SNAT",
+                          paste(SDOM_BIO, substr(GR_STATION, 1 ,3), Improd, sep = "_"),
+                          paste(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, sep = "_")),
+             GE1 = gsub("__", "_", GE1)) #le paste des SNAT génère deux "_" qu'il faut enlever
+  }
+  
+  #2.2.2 GE3
+  if(!"GE3" %in% names(dfDonneesPoly)){
+    dfDonneesPoly <- 
+      dfDonneesPoly %>% 
+      mutate(GE3 = ifelse(Improd %in% "_SNAT" | cl_vol3 %in% c(NA, "NA", "Na", "na"),
+                          NA,
+                          paste(SDOM_BIO, GR_STATION, TYF, 
+                                Enjeux_evo, cl_vol3, sep = "_")))
+  }
+  
+  #2.2.3 GE5
+  if(!"GE5" %in% names(dfDonneesPoly)){
+    dfDonneesPoly <- 
+      dfDonneesPoly %>% 
+      mutate(GE5 = ifelse(Improd %in% "_SNAT" | cl_vol5 %in% c(NA, "NA", "Na", "na"),
+                          NA,
+                          paste(SDOM_BIO, GR_STATION, TYF, 
+                                Enjeux_evo, cl_vol5, sep = "_")))
+  }
+  
+  #2.2.4 DESC_FAMC dans le catalogue des courbes
+  if(!"DESC_FAMC" %in% names(catCourbes)){
+    catCourbes <- 
+      catCourbes %>% 
+      mutate(DESC_FAMC = ifelse(classe %in% c(NA, "NA", "Na", "na"),
+                                paste(SDOM, GR_STATION, TYF, enjeux, sep = "_"),
+                                paste(SDOM, GR_STATION, TYF, enjeux, classe, sep = "_")))
+  }
+  
+  
+  
   
   #2.2 Vérifier les données manquantes
   #Il faut aussi vérifier qu'on n'a pas des données de volume manquantes. Ça devrait
@@ -513,6 +555,7 @@ faireKnn <- function(dfDonneesPoly,
   #des polyognes. Adrian m'a dit que cette appelation (sans "_") va
   #être le nouveau standard
   dfDonneesPoly$GR_STATION <- gsub("_", "", dfDonneesPoly$GR_STATION)
+  catCourbes$GR_STATION <- gsub("_", "", catCourbes$GR_STATION)
   
   #Calculer le grand tyf
   dfDonneesPoly$grandTYF <- substr(dfDonneesPoly$TYF, 1, 2)
@@ -1263,7 +1306,7 @@ faireKnn <- function(dfDonneesPoly,
   donneesCluster <- left_join(donneesCluster, enjeuxConf,
                               by = c("ID_COURBE", "clusterAttach", "Enjeux_str")) 
   
-  
+   
   #7. Ajouter le NOM_FAMC du catalogue de courbes
   #7.1 Sélectionner les colonnes qu'on veut
   nomFam <-
