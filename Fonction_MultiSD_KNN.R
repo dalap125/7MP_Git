@@ -380,7 +380,7 @@ faireKnn <- function(dfDonneesPoly,
                         gsub("v5", "v34", GE3), 
                         as.character(GE3)),
            GE5 = ifelse(GE5 %in% v5Petits, 
-                        gsub("v5", "v4", GE5), 
+                        gsub("v5", "v4", GE5),  
                         as.character(GE5)))
   
   
