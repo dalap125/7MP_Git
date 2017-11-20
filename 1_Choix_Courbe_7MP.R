@@ -201,7 +201,7 @@ choixCourbe <-
     #2.1 Vérifier que toutes les variables dont on a besoin sont la
     #2.1.1 Catalogue des courbes
     #2.1.1.1 Identifier les variables nécessaires
-    varsCatCourbes <- c("NOM_FAMC", "DESC_FAMC", 
+    varsCatCourbes <- c("NOM_FAMC", #"DESC_FAMC", 
                         "SDOM",    #le sous-domaine
                         "GR_STATION", "TYF", "enjeux",   #l'enjeux stratégique (e.g. En95)
                         "age", "classe",   #classe de volume (v1, v2,...)
@@ -228,9 +228,8 @@ choixCourbe <-
     #2.1.2.1 Identifier les variables nécessaires
     varsDonneesPoly <- c("ID_BFEC", "v_TOT", "SDOM_BIO", "GR_STATION", 
                          "TYF", "Enjeux_evo", "Improd",
-                         "cl_vol3", "cl_vol5", "GE1", "GE3", "GE5",
+                         "cl_vol3", "cl_vol5", #"GE1", "GE3", "GE5",
                          "clage", "SUPERFICIE")   
-    
     
     
     #2.1.2.2  S'il y a au moins une variable manquante
@@ -245,6 +244,47 @@ choixCourbe <-
            " ne sont pas présentes dans le jeu de données défini par 'dfDonneesPoly'.",
            "Faites attention que cette fonction est sensible aux minuscules ",
            "et aux majuscules.")
+    }
+    
+    
+    #2.2 Ajouter des champs dont on a besoin mais qu'Olivier n'a peut être pas
+    #2.2.1 GE1
+    if(!"GE1" %in% names(dfDonneesPoly)){
+      dfDonneesPoly <- 
+        dfDonneesPoly %>% 
+        mutate(GE1 = ifelse(Improd %in% "_SNAT",
+                            paste(SDOM_BIO, substr(GR_STATION, 1 ,3), Improd, sep = "_"),
+                            paste(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, sep = "_")),
+               GE1 = gsub("__", "_", GE1)) #le paste des SNAT génère deux "_" qu'il faut enlever
+    }
+    
+    #2.2.2 GE3
+    if(!"GE3" %in% names(dfDonneesPoly)){
+      dfDonneesPoly <- 
+        dfDonneesPoly %>% 
+        mutate(GE3 = ifelse(Improd %in% "_SNAT" | cl_vol3 %in% c(NA, "NA", "Na", "na"),
+                            NA,
+                            paste(SDOM_BIO, GR_STATION, TYF, 
+                                  Enjeux_evo, cl_vol3, sep = "_")))
+    }
+    
+    #2.2.3 GE5
+    if(!"GE5" %in% names(dfDonneesPoly)){
+      dfDonneesPoly <- 
+        dfDonneesPoly %>% 
+        mutate(GE5 = ifelse(Improd %in% "_SNAT" | cl_vol5 %in% c(NA, "NA", "Na", "na"),
+                            NA,
+                            paste(SDOM_BIO, GR_STATION, TYF, 
+                                  Enjeux_evo, cl_vol5, sep = "_")))
+      }
+    
+    #2.2.4 DESC_FAMC dans le catalogue des courbes
+    if(!"DESC_FAMC" %in% names(catCourbes)){
+      catCourbes <- 
+        catCourbes %>% 
+        mutate(DESC_FAMC = ifelse(classe %in% c(NA, "NA", "Na", "na"),
+                                  paste(SDOM, GR_STATION, TYF, enjeux, sep = "_"),
+                                  paste(SDOM, GR_STATION, TYF, enjeux, classe, sep = "_")))
     }
     
     
@@ -444,9 +484,10 @@ choixCourbe <-
     ######################################################################
     ######################################################################
     #Pour l'instant il faut enlever les "_" de l'appelation de GR_STAT
-    #des polyognes. Adrian m'a dit que cette appelation (sans "_") va
+    #des polygones. Adrian m'a dit que cette appelation (sans "_") va
     #être le nouveau standard
     dfDonneesPoly$GR_STATION <- gsub("_", "", dfDonneesPoly$GR_STATION)
+    catCourbes$GR_STATION <- gsub("_", "", catCourbes$GR_STATION)
     
     #Calculer le grand tyf
     dfDonneesPoly$grandTYF <- substr(dfDonneesPoly$TYF, 1, 2)
