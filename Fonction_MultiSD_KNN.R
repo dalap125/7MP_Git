@@ -356,7 +356,7 @@ faireKnn <- function(dfDonneesPoly,
   }
   
   
-  
+   
   #3. Gérer l'échelle de la courbe: i.e est-ce qu'on utilise une courbe v1,
   #v12 ou génerale?
   #3.0 Crisser (poliment) les v5 dans les v4 si leur superficie est plus 
