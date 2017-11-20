@@ -236,7 +236,7 @@ faireKnn <- function(dfDonneesPoly,
   #2.1 Vérifier que toutes les variables dont on a besoin sont la
   #2.1.1 Catalogue des courbes
   #2.1.1.1 Identifier les variables nécessaires
-  varsCatCourbes <- c("DESC_FAMC", "age", "SDOM",    #le sous-domaine
+  varsCatCourbes <- c("age", "SDOM",    #le sous-domaine
                       "GR_STATION", "TYF", "enjeux",   #l'enjeux stratégique (e.g. En95)
                       "classe",   #classe de volume (v1, v2,...)
                       "VOL_HA", "classec")     #Le côté de la courbe
@@ -262,7 +262,7 @@ faireKnn <- function(dfDonneesPoly,
   #2.1.2.1 Identifier les variables nécessaires
   varsDonneesPoly <- c("ID_BFEC", "v_TOT", "SDOM_BIO", "GR_STATION", 
                        "TYF", "Enjeux_evo", "Enjeux_str", "Improd",
-                       "cl_vol3", "cl_vol5", "GE1", "GE3", "GE5",
+                       "cl_vol3", "cl_vol5", 
                        "clage", "SUPERFICIE")   
   
   
@@ -356,7 +356,7 @@ faireKnn <- function(dfDonneesPoly,
   }
   
   
-  
+   
   #3. Gérer l'échelle de la courbe: i.e est-ce qu'on utilise une courbe v1,
   #v12 ou génerale?
   #3.0 Crisser (poliment) les v5 dans les v4 si leur superficie est plus 
