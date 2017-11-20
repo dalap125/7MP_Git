@@ -1,6 +1,6 @@
 #Ceci est le script pour attacher les polygones à une courbe KNN.
 #Ce script peut être roulé directement ou peux être appelé par un autre script
-#avec la fonction "source(«directoire de ce script.R»)"
+#avec la fonction "source(«directoire de ce script.R»)" 
 
 #Ce script est structuré de la suivante façon:
 #  1. Charger les packages
@@ -248,6 +248,12 @@ choixCourbe <-
     
     
     #2.2 Ajouter des champs dont on a besoin mais qu'Olivier n'a peut être pas
+    #2.2.0 Pour l'instant il faut enlever les "_" de l'appelation de GR_STAT
+    #des polygones. Adrian m'a dit que cette appelation (sans "_") va
+    #être le nouveau standard
+    dfDonneesPoly$GR_STATION <- gsub("_", "", dfDonneesPoly$GR_STATION)
+    catCourbes$GR_STATION <- gsub("_", "", catCourbes$GR_STATION)
+    
     #2.2.1 GE1
     if(!"GE1" %in% names(dfDonneesPoly)){
       dfDonneesPoly <- 
@@ -481,14 +487,6 @@ choixCourbe <-
     #5.Assigner les polygones qui sont dans des groupes évolutifs plus petits que la
     #superficie minimale définie à un groupe évolutif plus gros
     #5.0 Pour faire ça on va avoir besoin de plusieurs variables (SDOM_BIO,
-    ######################################################################
-    ######################################################################
-    #Pour l'instant il faut enlever les "_" de l'appelation de GR_STAT
-    #des polygones. Adrian m'a dit que cette appelation (sans "_") va
-    #être le nouveau standard
-    dfDonneesPoly$GR_STATION <- gsub("_", "", dfDonneesPoly$GR_STATION)
-    catCourbes$GR_STATION <- gsub("_", "", catCourbes$GR_STATION)
-    
     #Calculer le grand tyf
     dfDonneesPoly$grandTYF <- substr(dfDonneesPoly$TYF, 1, 2)
     catCourbes$grandTYF <- substr(catCourbes$TYF, 1, 2)

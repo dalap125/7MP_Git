@@ -80,9 +80,10 @@ faireKnn <- function(dfDonneesPoly,
   #2.1.1 Catalogue des courbes
   #2.1.1.1 Identifier les variables nécessaires
   varsCatCourbes <- c("NOM_FAMC", "DESC_FAMC", "age", 
+                      "SDOM", "GR_STATION", "TYF", "enjeux", "classe",
                       "classe",   #classe de volume (v1, v2,...)
                       "VOL_HA", "classec")     #Le côté de la courbe
-  
+
   
   
   #2.1.1.2  S'il y a au moins une variable manquante
@@ -122,14 +123,25 @@ faireKnn <- function(dfDonneesPoly,
   }
   
   
+  #2.2 Ajouter des champs dont on a besoin mais qu'Olivier n'a peut être pas
+  #2.2.1 DESC_FAMC dans le catalogue des courbes
+  if(!"DESC_FAMC" %in% names(catCourbes)){
+    catCourbes <- 
+      catCourbes %>% 
+      mutate(DESC_FAMC = ifelse(classe %in% c(NA, "NA", "Na", "na"),
+                                paste(SDOM, GR_STATION, TYF, enjeux, sep = "_"),
+                                paste(SDOM, GR_STATION, TYF, enjeux, classe, sep = "_")))
+  }
   
-  #2.2 Vérifier les données manquantes
+  
+  
+  #2.3 Vérifier les données manquantes
   #Il faut aussi vérifier qu'on n'a pas des données de volume manquantes. Ça devrait
   #jamais arriver non plus.
-  #2.2.1 Si au moins un polygone n'a pas une valeur de volume total
+  #2.3.1 Si au moins un polygone n'a pas une valeur de volume total
   if(any(is.na(dfDonneesPoly$v_TOT)) ){
     
-    #2.2.2 Identifier les groupes où ça a arrivé 
+    #2.3.2 Identifier les groupes où ça a arrivé 
     volManq <- 
       dfDonneesPoly %>% 
       filter(v_TOT %in% NA) %>%   #Trouver les lignes avec NA
