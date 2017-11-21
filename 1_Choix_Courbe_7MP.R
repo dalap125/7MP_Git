@@ -972,7 +972,7 @@ choixCourbe <-
     #7.2.1 Regrouper le jeu de données selon les variables qu'on veut
     dfStrates <- 
       dfDonneesPoly %>% 
-      group_by(COURBE, classec) %>% 
+      group_by(NOM_FAMC, COURBE, classec) %>% 
       
       #7.2.2 Calculer la somme de la superficie de chaque GE
       summarise(SUPERFICIE = sum(SUPERFICIE)) %>% 

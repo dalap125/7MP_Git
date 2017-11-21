@@ -518,7 +518,7 @@ faireKnn <- function(dfDonneesPoly,
     donneesCluster %>% 
     
     #6.3.1 Regrouper le jeu de données selon les variables qu'on veut
-    group_by(COURBE, Enjeux_strConf, classec, clusterAttach, ageAttach) %>% 
+    group_by(NOM_FAMC, COURBE, Enjeux_strConf, classec, clusterAttach, ageAttach) %>% 
     
     #6.3.2 Calculer la somme de la superficie de chaque GE
     summarise(SUPERFICIE = sum(SUPERFICIE)) %>% 
