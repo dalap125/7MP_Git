@@ -481,7 +481,7 @@ faireKnn <- function(dfDonneesPoly,
   
   #3.5.8 Faire un avertissement qui nous dit quelles courbes nous manquent
   courbesManq <- dfDonneesPoly %>% filter(is.na(DESC_FAMC_Comp))
-  if(nrow(courbesManq > 0)){
+  if(nrow(courbesManq) > 0){
     
     warning(nrow(courbesManq), " polygones ne sont pas étés regroupés parce que ",
             "les courbes ", paste(unique(courbesManq$COURBE), collapse = ", "),
@@ -721,9 +721,78 @@ faireKnn <- function(dfDonneesPoly,
     grosCatCourbesSen <- 
       lapply(grosCatCourbesSen, function(x) unlist(unname(x)))
     
-    
+   
     #5.4 Alors, on peut finalement trouver les courbes les plus proches avec une
     #boucle
+    #5.4.0 D'abord il faut vérifier qu'on a une superficie totale de peuplements
+    #improductifs assez grosse
+    #5.4.0.1 Calculer la somme de toutes les peuplements improductifs
+    supImprod <- 
+      dfDonneesPoly %>% 
+      filter(grepl("SNAT", COURBE)) %>% 
+      summarise(sumSup = sum(SUPERFICIE)) %>% 
+      unlist %>% unname
+    
+    #5.4.0.2 Si la superficie totale des improductifs est plus petite que
+    #le seuil spécifié
+    if(supImprod < supMin_courbe){
+      
+      #5.4.0.3 Identifier le groupe improductif le plus gros
+      courbesImprod <- 
+        dfDonneesPoly %>% 
+        filter(grepl("SNAT", COURBE)) %>% 
+        group_by(ID_COURBE, COURBE, classec) %>% 
+        summarise(sumSup = sum(SUPERFICIE)) %>% 
+        ungroup() %>% 
+        arrange(desc(sumSup)) %>% 
+        slice(1) %>% 
+        select(ID_COURBE, COURBE, classec) %>%
+        as.data.frame()
+      
+      
+      #5.4.0.4 Créer le tableau qu'on va ajouter à l'extrant "dfCourbesPetites"
+      improdCourbesPetites <- 
+        dfDonneesPoly %>% 
+        filter(grepl("SNAT", COURBE)) %>% 
+        group_by(COURBE, classec) %>% 
+        summarise(sumSup = sum(SUPERFICIE)) %>% 
+        ungroup() %>% 
+        mutate(courbeEquiv = courbesImprod[1, "COURBE"],
+               condNumero = "cond6") %>% 
+        rename(courbeOri = COURBE) %>% 
+        select(courbeOri, courbeEquiv, classec, sumSup, condNumero)
+      
+      
+      #5.4.0.5 On remplace la courbe dans le jeu de données principal
+      dfDonneesPoly <- 
+        dfDonneesPoly %>% 
+        mutate(COURBE = ifelse(grepl("SNAT", COURBE), 
+                               courbesImprod[1, "COURBE"],
+                               as.character(COURBE)),
+               ID_COURBE = ifelse(grepl("SNAT", ID_COURBE), 
+                                  courbesImprod[1, "ID_COURBE"],
+                                  as.character(ID_COURBE)),
+               classec = ifelse(grepl("SNAT", classec), 
+                                  courbesImprod[1, "classec"],
+                                  as.character(classec)))
+      
+     
+      #5.4.0.6 On enleve ces cas de l'objet "courbesPetites" parce qu'on n'a
+      #plus besoin de faire des DTWs pour eux
+      courbesPetites <- 
+        courbesPetites %>% 
+        filter(!grepl("SNAT", COURBE))
+      
+      
+      #5.4.0.7 Créer un indicateur pour dire que la superficie des
+      #improductifs était trop petite pour qu'on puisse l'ajouter 
+      #au jeu de données des peuplements trop petits
+      snat_trop_petit <- TRUE
+      
+      
+    }
+    
+    
     for(i in 1:nrow(courbesPetites)){
       
       #5.4.1 D'abord on a besoin de savoir si on veut une courbe de croissance ou 
@@ -731,7 +800,16 @@ faireKnn <- function(dfDonneesPoly,
       #compromis selon le sous domaine, le type de couvert...) on a besoin
       #des courbes dans un dataframe et pour faire le clustering des courbes (DTW)
       #on a besoin des courbes dans une liste.
-      if(courbesPetites[i, "classec"] %in% "1"){
+      
+      #On fait une exception pour les SNATs: le côté de la courbe n'est pas 
+      #vraiment important, et ça va nous aider à éviter de mélanger des SNATs
+      #avec d'autres courbes
+      if(grepl("SNAT", courbesPetites[i, "COURBE"])){
+        
+        list_tempCatCourbes <- c(grosCatCourbesCrois, grosCatCourbesSen)
+        df_tempCatCourbes <- grosCatCourbes
+        
+      } else if(courbesPetites[i, "classec"] %in% "1"){
         
         list_tempCatCourbes <- grosCatCourbesCrois
         df_tempCatCourbes <- grosCatCourbes %>% filter(classec %in% "1")
@@ -776,7 +854,7 @@ faireKnn <- function(dfDonneesPoly,
       #5.4.2.5 Courbe équivalente dans le même grStat et type de couvert
       cond_couv <-
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$typeCouv, sep = "_") %in%
-        paste(courbesPetites$GR_STATION[i], courbesPetites$typeCouv[i],sep = "_")
+        paste(courbesPetites$GR_STATION[i], courbesPetites$typeCouv[i], sep = "_")
       
       
       #5.4.2.6 Courbe équivalente dans le même TYF
@@ -820,7 +898,7 @@ faireKnn <- function(dfDonneesPoly,
           distinct(ID_COURBE) %>% unlist() %>% unname()
         
         #Mettre à jour le numéro de la condition utilisée
-        condNumero <- "cond1"
+        condNumero <- "cond2"
         
         
         #5.4.3.3 Selon la famille de stattion et le TYF
@@ -913,6 +991,20 @@ faireKnn <- function(dfDonneesPoly,
         catCourbes %>%
         filter(ID_COURBE %in% courbesPetites[i, "ID_COURBE"]) %>%
         select(VOL_HA) %>% unlist %>% unname
+     
+      if(length(list_tempCatCourbes$tempCourbe) == 0){
+        
+        miss_Courbe <- unlist(unname(courbesPetites[i, "COURBE"]))
+        miss_IDBFEC <- 
+          dfDonneesPoly %>% 
+          filter(COURBE %in% miss_Courbe) %>% 
+          select(ID_BFEC) %>% unlist %>% unname
+        
+        stop("La courbe ", miss_Courbe,
+             " n'existe pas dans le catalogue de courbes. Voici la liste ",
+             "de l'ID BFEC des polygones qui ont cette courbe: ", 
+             paste(miss_IDBFEC, collapse = ", "))
+      }
       
       
       #5.4.6 Maintenant on calcule les distances
@@ -998,7 +1090,17 @@ faireKnn <- function(dfDonneesPoly,
       transmute(courbeOri = COURBE, 
                 courbeEquiv, classec, sumSup, condNumero)
     
-    #5.9 Faire un petit avertissement pour dire au utilisateur si on a 
+    
+    #5.9 Si la superficie des Improds était trop petite, on les a mis tous
+    #dans un seul groupe mais on n'a pas fait de DTW. Alors, il faut rajouter
+    #ça à l'extrant des courbes petites maintenant
+    if(exists("snat_trop_petit")){
+      
+      courbesPetites <- bind_rows(courbesPetites, improdCourbesPetites)
+    }
+    
+    
+    #5.10 Faire un petit avertissement pour dire au utilisateur si on a 
     #changé les courbes de quelques groupes évolutifs
     warning(paste0(nrow(courbesPetites), " groupes évolutifs avaient une superficie ",
                    "totale inférieure à la superficie minimale spécifiée (", 
@@ -1066,17 +1168,20 @@ faireKnn <- function(dfDonneesPoly,
     #de la courbe (croissance (classec == 1) vs senescence (classec == 2))
     #Par contre, si on a des SNAT on veut un maximum de 2 points d'attachement
     #de chaque côté
-    if(unique(tempDonnees$classec) %in% "1"){
+    if(any(grepl("SNAT", tempDonnees$COURBE))){
+      
+      nombreMaxCluster <- 2
+      
+    } else if (unique(tempDonnees$classec) %in% "1"){
    
-      nombreMaxCluster <- unique(ifelse(grepl("SNAT", tempDonnees$COURBE), 2, 
-                                        nombreMaxClusterCroissance))
+      nombreMaxCluster <- nombreMaxClusterCroissance
       
-    } else { #si le groupe est du côté gauche de la courbe de croissance:
+    } else { #si le groupe est du côté droit de la courbe de croissance:
       
-      nombreMaxCluster <- unique(ifelse(grepl("SNAT", tempDonnees$COURBE), 2, 
-                                        nombreMaxClusterSenescence))
+      nombreMaxCluster <- nombreMaxClusterSenescence
       
     } 
+    
     
     #6.4.2 On commence par éliminer des points d'attachement qu'ont un volume de 0
     #(s'ils existent)
