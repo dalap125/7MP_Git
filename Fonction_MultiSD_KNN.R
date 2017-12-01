@@ -356,7 +356,7 @@ faireKnn <- function(dfDonneesPoly,
   }
   
   
-   
+  
   #3. Gérer l'échelle de la courbe: i.e est-ce qu'on utilise une courbe v1,
   #v12 ou génerale?
   #3.0 Crisser (poliment) les v5 dans les v4 si leur superficie est plus 
@@ -383,58 +383,130 @@ faireKnn <- function(dfDonneesPoly,
                         gsub("v5", "v4", GE5),  
                         as.character(GE5)))
   
-  browser()
-  #3.1 Calculer si un groupe rentre dans les generales (i.e courbe NA au
-  #lieu de v12 ou v1)
-  #3.1.1 Enlever les v5
+ 
+  #3.1 Calculer la superficie de chaque GE + v12 et v34
+  echelle_2g <- 
+    dfDonneesPoly %>% 
+    group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, cl_vol3) %>% 
+    summarise(echelle_2 = sum(SUPERFICIE)) %>% 
+    ungroup()
+  
+  
+  #3.2 Calculer le ratio entre la v12 et la v34
+  ratio_2g <- 
+    echelle_2g %>% 
+    group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo) %>% 
+    summarise(ratio_2g = round(echelle_2[1] / sum(echelle_2)))
+  
+  
+  #3.3 Calculer la superficie de chaque GE + v1, v2 ,v3 et v34
+  echelle_5g <- 
+    dfDonneesPoly %>% 
+    group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, cl_vol3, cl_vol5) %>% 
+    summarise(echelle_5 = sum(SUPERFICIE)) %>% 
+    ungroup()
+  
+  
+  #3.4 Calculer le ratio entre la v12 et la v34
+  ratio_5g <- 
+    echelle_5g %>%
+    group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, cl_vol3) %>%
+    summarise(ratio_5g = round(echelle_5[1] / sum(echelle_5), 2)) %>% 
+    ungroup()
+  
+  
+  #3.5 Calculer la superficie de chaque GE + courbe generale (v12 + v34) 
   echelle_gen <- 
     dfDonneesPoly %>% 
-    filter(cl_vol3 %in% c("v12", "v34")) %>% 
-    
-    #3.1.2 Calculer la superficie de chaque GE + v12 et v34
-    group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, cl_vol3) %>% 
-    summarise(supEch3 = sum(SUPERFICIE)) %>% 
-    
-    #3.1.3 Déterminer si les valeurs sont plus gros ou plus petits
-    #que le minimum spécifiée
-    mutate(supGrande = ifelse(supEch3 >= supMin_courbe, TRUE, FALSE)) %>% 
-    
-    #3.1.4 Voir s'il y a au moins une valeur FAUSSE pour chaque groupe. Alors,
-    #si toutes les valeurs sont vraies, la somme des TRUES devrait donner
-    #le nombre d'éléments du groupe (TRUE == 1 dans une somme)
-    summarise(echelle_gen = ifelse(sum(supGrande) < n(), TRUE, FALSE))
+    group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo) %>% 
+    summarise(echelle_gen = sum(SUPERFICIE)) %>% 
+    ungroup()
   
   
-  #3.2 Faire la même chose pour la v12 et v34
-  echelle_3 <- 
-    dfDonneesPoly %>% 
-    filter(cl_vol5 %in% c("v1", "v2", "v3", "v4")) %>% 
-    group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, cl_vol5) %>% 
-    summarise(supEch3 = sum(SUPERFICIE)) %>% 
-    mutate(supGrande = ifelse(supEch3 >= supMin_courbe, TRUE, FALSE)) %>% 
-    summarise(echelle_3 = ifelse(sum(supGrande) < n(), TRUE, FALSE))
-  
-  
-  #3.3 Joindre ces 2 indicateurs au jeu de données principal
+  #3.6 Joindre ces 2 indicateurs au jeu de données principal
   dfDonneesPoly <- 
     left_join(dfDonneesPoly, echelle_gen,
               by = c("SDOM_BIO", "GR_STATION", "TYF", "Enjeux_evo"))
   
   dfDonneesPoly <- 
-    left_join(dfDonneesPoly, echelle_3,
+    left_join(dfDonneesPoly, echelle_2g,
+              by = c("SDOM_BIO", "GR_STATION", "TYF", "Enjeux_evo", "cl_vol3"))
+  
+  dfDonneesPoly <- 
+    left_join(dfDonneesPoly, ratio_2g,
               by = c("SDOM_BIO", "GR_STATION", "TYF", "Enjeux_evo"))
   
+  dfDonneesPoly <- 
+    left_join(dfDonneesPoly, echelle_5g,
+              by = c("SDOM_BIO", "GR_STATION", "TYF", "Enjeux_evo", 
+                     "cl_vol3", "cl_vol5"))
   
-  #3.4 Calculer la vraie courbe à utiliser avec ces 2 indicateurs
+  dfDonneesPoly <- 
+    left_join(dfDonneesPoly, ratio_5g,
+              by = c("SDOM_BIO", "GR_STATION", "TYF", "Enjeux_evo", "cl_vol3"))
+  
+  
+  #3.6 Calculer la vraie courbe à utiliser avec ces 2 indicateurs
   #On met tous les SNATs (improductifs) comme des GE1 (les autres 
   #echèlles n'existent pas)
   dfDonneesPoly <- 
     dfDonneesPoly %>% 
+    mutate_at(vars(starts_with("GE")), as.character) %>% 
+    
     mutate(COURBE =
-             case_when(.$Improd %in% "_SNAT" ~ as.character(.$GE1),
-                       .$echelle_gen %in% TRUE ~ as.character(.$GE1),
-                       .$echelle_3 %in% TRUE ~ as.character(.$GE3),
-                       TRUE ~ as.character(.$GE5))) 
+           
+           #3.6.1 Improductifs sont toujours GE1
+           case_when(
+             .$Improd %in% "_SNAT" ~ .$GE1,
+             
+             #3.6.2 Si sup GE5 >= supMinCourbe, on guarde les groupes GE5
+             .$echelle_5 >= supMin_courbe & !is.na(.$GE5) ~ .$GE5,
+             .$echelle_5 >= supMin_courbe & !is.na(.$GE3) ~ .$GE3,
+             .$echelle_5 >= supMin_courbe & !is.na(.$GE1) ~ .$GE1,
+             
+             
+             #3.6.3 Si sup GE5 < supMinCourbe MAIS sup v12/v34 >= supMinCourbe et
+             #le ratio entre les 2 courbes (e.g. v1 et v2) est >= 0.8 et 
+             #<= 1.2 (i.e. les 2  groupes sont bien equilibrés), on les donne 
+             #un GE3
+             .$echelle_5 < supMin_courbe & .$echelle_2 >= supMin_courbe &
+               (.$ratio_5g >= 0.80 & .$ratio_5g <= 1.20) &
+               (.$echelle_2 - .$echelle_5 < supMin_courbe) &
+               !is.na(.$GE3) ~ .$GE3,
+             
+             .$echelle_5 < supMin_courbe & .$echelle_2 >= supMin_courbe &
+               (.$ratio_5g >= 0.80 & .$ratio_5g <= 1.20) &
+               (.$echelle_2 - .$echelle_5 < supMin_courbe) &
+               !is.na(.$GE1) ~ .$GE1,
+           
+             
+           #3.6.4 Si sup v12/v34 < supMinCourbe MAIS sup totale >= supMinCourbe et
+           #le ratio entre les 2 courbes (v12 et v34) est >= 0.8 et <= 1.2 
+           #(i.e. les 2 groupes sont bien equilibrés), on les donne un GE1
+             .$echelle_2 < supMin_courbe & .$echelle_gen >= supMin_courbe &
+             (.$ratio_2g >= 0.80 & .$ratio_2g <= 1.20) &
+             (.$echelle_gen - .$echelle_2 < supMin_courbe) &
+             !is.na(.$GE1) ~ .$GE1,
+  
+           
+           #3.6.5 Pour toutes les autres courbes, on laise le GE5 qui va être
+           #trop petit et va être regroupe avec DTW
+             TRUE & !is.na(.$GE5) ~ .$GE5,
+             TRUE & !is.na(.$GE3) ~ .$GE3,
+             TRUE & !is.na(.$GE1) ~ .$GE1)) 
+  
+  
+  
+  
+  # .$echelle_gen %in% TRUE ~ as.character(.$GE1),
+  # .$echelle_3 %in% TRUE ~ as.character(.$GE3),
+  # TRUE ~ as.character(.$GE5))) 
+  
+  
+  # case_when(.$Improd %in% "_SNAT" ~ as.character(.$GE1),
+  #           .$echelle_gen %in% TRUE ~ as.character(.$GE1),
+  #           .$echelle_3 %in% TRUE ~ as.character(.$GE3),
+  #           TRUE ~ as.character(.$GE5))) 
   
   
   #3.5 Ça se peut que la courbe choisie par l'algorithme d'échelle ci-dessus
@@ -471,7 +543,7 @@ faireKnn <- function(dfDonneesPoly,
     #3.5.6 Pour enlever des doublons SNAT
     distinct()
   
- 
+  
   #3.5.7 Utiliser ce catalogue pour trouver les courbes de compromis des
   #polygones
   dfDonneesPoly <- left_join(dfDonneesPoly,
@@ -631,16 +703,16 @@ faireKnn <- function(dfDonneesPoly,
     #5.2.5.1 Re-ajouter les courbes compromis en utilisant la GE5 au lieu
     #de la courbe choisie par l'algorithme
     ####################################################################
-    #Correction SNAT et courbes manquantes. Si la plus détaillée n'est pas 
-    #disponible, on essaie de mettre une autre
-    mutate(GE5 = ifelse(grepl("SNAT", GE1), as.character(GE1), as.character(GE5)),
-           GE5 = ifelse(GE5 %in% c(NA, "NA","Na","na"), 
-                        as.character(GE1), as.character(GE5)),
-           GE5 = ifelse(GE5 %in% c(NA, "NA","Na","na"), 
-                        as.character(GE3), as.character(GE5))) %>% 
+  #Correction SNAT et courbes manquantes. Si la plus détaillée n'est pas 
+  #disponible, on essaie de mettre une autre
+  mutate(GE5 = ifelse(grepl("SNAT", GE1), as.character(GE1), as.character(GE5)),
+         GE5 = ifelse(GE5 %in% c(NA, "NA","Na","na"), 
+                      as.character(GE1), as.character(GE5)),
+         GE5 = ifelse(GE5 %in% c(NA, "NA","Na","na"), 
+                      as.character(GE3), as.character(GE5))) %>% 
     ####################################################################
-    
-    left_join(compromisCatCourbes, by = c("GE5" = "DESC_FAMC")) %>%
+  
+  left_join(compromisCatCourbes, by = c("GE5" = "DESC_FAMC")) %>%
     
     #5.2.5.2 Changer le nom de la courbe selon le compromis trouvé
     mutate(COURBE = DESC_FAMC_Comp, 
@@ -721,7 +793,7 @@ faireKnn <- function(dfDonneesPoly,
     grosCatCourbesSen <- 
       lapply(grosCatCourbesSen, function(x) unlist(unname(x)))
     
-   
+    
     #5.4 Alors, on peut finalement trouver les courbes les plus proches avec une
     #boucle
     #5.4.0 D'abord il faut vérifier qu'on a une superficie totale de peuplements
@@ -773,10 +845,10 @@ faireKnn <- function(dfDonneesPoly,
                                   courbesImprod[1, "ID_COURBE"],
                                   as.character(ID_COURBE)),
                classec = ifelse(grepl("SNAT", classec), 
-                                  courbesImprod[1, "classec"],
-                                  as.character(classec)))
+                                courbesImprod[1, "classec"],
+                                as.character(classec)))
       
-     
+      
       #5.4.0.6 On enleve ces cas de l'objet "courbesPetites" parce qu'on n'a
       #plus besoin de faire des DTWs pour eux
       courbesPetites <- 
@@ -991,7 +1063,7 @@ faireKnn <- function(dfDonneesPoly,
         catCourbes %>%
         filter(ID_COURBE %in% courbesPetites[i, "ID_COURBE"]) %>%
         select(VOL_HA) %>% unlist %>% unname
-     
+      
       if(length(list_tempCatCourbes$tempCourbe) == 0){
         
         miss_Courbe <- unlist(unname(courbesPetites[i, "COURBE"]))
@@ -1111,7 +1183,7 @@ faireKnn <- function(dfDonneesPoly,
     
   }
   
-
+  
   
   
   #6. Le clustering avec k-NN (k plus proches voisins)
@@ -1173,7 +1245,7 @@ faireKnn <- function(dfDonneesPoly,
       nombreMaxCluster <- 2
       
     } else if (unique(tempDonnees$classec) %in% "1"){
-   
+      
       nombreMaxCluster <- nombreMaxClusterCroissance
       
     } else { #si le groupe est du côté droit de la courbe de croissance:
@@ -1410,7 +1482,7 @@ faireKnn <- function(dfDonneesPoly,
   donneesCluster <- left_join(donneesCluster, enjeuxConf,
                               by = c("ID_COURBE", "clusterAttach", "Enjeux_str")) 
   
-   
+  
   #7. Ajouter le NOM_FAMC du catalogue de courbes
   #7.1 Sélectionner les colonnes qu'on veut
   nomFam <-
