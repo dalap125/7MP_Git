@@ -383,7 +383,7 @@ faireKnn <- function(dfDonneesPoly,
                         gsub("v5", "v4", GE5),  
                         as.character(GE5)))
   
-  
+  browser()
   #3.1 Calculer si un groupe rentre dans les generales (i.e courbe NA au
   #lieu de v12 ou v1)
   #3.1.1 Enlever les v5
