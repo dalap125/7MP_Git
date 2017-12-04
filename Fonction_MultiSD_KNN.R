@@ -294,7 +294,7 @@ faireKnn <- function(dfDonneesPoly,
   if(!"GE1" %in% names(dfDonneesPoly)){
     dfDonneesPoly <- 
       dfDonneesPoly %>% 
-      mutate(GE1 = ifelse(Improd %in% "_SNAT",
+      mutate(GE1 = ifelse(Improd %in% "SNAT",
                           paste(SDOM_BIO, substr(GR_STATION, 1 ,3), Improd, sep = "_"),
                           paste(SDOM_BIO, GR_STATION, TYF, Enjeux_evo, sep = "_")),
              GE1 = gsub("__", "_", GE1)) #le paste des SNAT génère deux "_" qu'il faut enlever
@@ -304,7 +304,7 @@ faireKnn <- function(dfDonneesPoly,
   if(!"GE3" %in% names(dfDonneesPoly)){
     dfDonneesPoly <- 
       dfDonneesPoly %>% 
-      mutate(GE3 = ifelse(Improd %in% "_SNAT" | cl_vol3 %in% c(NA, "NA", "Na", "na"),
+      mutate(GE3 = ifelse(Improd %in% "SNAT" | cl_vol3 %in% c(NA, "NA", "Na", "na"),
                           NA,
                           paste(SDOM_BIO, GR_STATION, TYF, 
                                 Enjeux_evo, cl_vol3, sep = "_")))
@@ -314,7 +314,7 @@ faireKnn <- function(dfDonneesPoly,
   if(!"GE5" %in% names(dfDonneesPoly)){
     dfDonneesPoly <- 
       dfDonneesPoly %>% 
-      mutate(GE5 = ifelse(Improd %in% "_SNAT" | cl_vol5 %in% c(NA, "NA", "Na", "na"),
+      mutate(GE5 = ifelse(Improd %in% "SNAT" | cl_vol5 %in% c(NA, "NA", "Na", "na"),
                           NA,
                           paste(SDOM_BIO, GR_STATION, TYF, 
                                 Enjeux_evo, cl_vol5, sep = "_")))
@@ -446,7 +446,7 @@ faireKnn <- function(dfDonneesPoly,
               by = c("SDOM_BIO", "GR_STATION", "TYF", "Enjeux_evo", "cl_vol3"))
   
   
-  #3.6 Calculer la vraie courbe à utiliser avec ces 2 indicateurs
+  #3.7 Calculer la vraie courbe à utiliser avec ces 2 indicateurs
   #On met tous les SNATs (improductifs) comme des GE1 (les autres 
   #echèlles n'existent pas)
   dfDonneesPoly <- 
@@ -455,17 +455,17 @@ faireKnn <- function(dfDonneesPoly,
     
     mutate(COURBE =
            
-           #3.6.1 Improductifs sont toujours GE1
+           #3.7.1 Improductifs sont toujours GE1
            case_when(
-             .$Improd %in% "_SNAT" ~ .$GE1,
+             .$Improd %in% "SNAT" ~ .$GE1,
              
-             #3.6.2 Si sup GE5 >= supMinCourbe, on guarde les groupes GE5
+             #3.7.2 Si sup GE5 >= supMinCourbe, on guarde les groupes GE5
              .$echelle_5 >= supMin_courbe & !is.na(.$GE5) ~ .$GE5,
              .$echelle_5 >= supMin_courbe & !is.na(.$GE3) ~ .$GE3,
              .$echelle_5 >= supMin_courbe & !is.na(.$GE1) ~ .$GE1,
              
              
-             #3.6.3 Si sup GE5 < supMinCourbe MAIS sup v12/v34 >= supMinCourbe et
+             #3.7.3 Si sup GE5 < supMinCourbe MAIS sup v12/v34 >= supMinCourbe et
              #le ratio entre les 2 courbes (e.g. v1 et v2) est >= 0.8 et 
              #<= 1.2 (i.e. les 2  groupes sont bien equilibrés), on les donne 
              #un GE3
@@ -480,7 +480,7 @@ faireKnn <- function(dfDonneesPoly,
                !is.na(.$GE1) ~ .$GE1,
            
              
-           #3.6.4 Si sup v12/v34 < supMinCourbe MAIS sup totale >= supMinCourbe et
+           #3.7.4 Si sup v12/v34 < supMinCourbe MAIS sup totale >= supMinCourbe et
            #le ratio entre les 2 courbes (v12 et v34) est >= 0.8 et <= 1.2 
            #(i.e. les 2 groupes sont bien equilibrés), on les donne un GE1
              .$echelle_2 < supMin_courbe & .$echelle_gen >= supMin_courbe &
@@ -489,69 +489,57 @@ faireKnn <- function(dfDonneesPoly,
              !is.na(.$GE1) ~ .$GE1,
   
            
-           #3.6.5 Pour toutes les autres courbes, on laise le GE5 qui va être
+           #3.7.5 Pour toutes les autres courbes, on laise le GE5 qui va être
            #trop petit et va être regroupe avec DTW
              TRUE & !is.na(.$GE5) ~ .$GE5,
              TRUE & !is.na(.$GE3) ~ .$GE3,
              TRUE & !is.na(.$GE1) ~ .$GE1)) 
+
   
   
-  
-  
-  # .$echelle_gen %in% TRUE ~ as.character(.$GE1),
-  # .$echelle_3 %in% TRUE ~ as.character(.$GE3),
-  # TRUE ~ as.character(.$GE5))) 
-  
-  
-  # case_when(.$Improd %in% "_SNAT" ~ as.character(.$GE1),
-  #           .$echelle_gen %in% TRUE ~ as.character(.$GE1),
-  #           .$echelle_3 %in% TRUE ~ as.character(.$GE3),
-  #           TRUE ~ as.character(.$GE5))) 
-  
-  
-  #3.5 Ça se peut que la courbe choisie par l'algorithme d'échelle ci-dessus
+  #3.8 Ça se peut que la courbe choisie par l'algorithme d'échelle ci-dessus
   #choisi une courbe que n'existe pas dans le catalogue de courbes. Alors,
   #il faut trouver des compromis dans ces cas. Pour les trouver, on va
   #utiliser la fonction "verifierCourbesVolExist()" qu'on a écrit avant
   #le début de cette fonction
-  #3.5.1 Assurer que les valeurs NA's de la classe de volume sont des vrais
+  #3.8.1 Assurer que les valeurs NA's de la classe de volume sont des vrais
   #NAs (et non le mot "NA" en caractères)
   compromisCatCourbes <- 
     catCourbes %>% 
     mutate(classe = ifelse(classe %in% c(NA, "NA", "na", "Na"), 
                            NA, as.character(classe))) %>% 
     
-    #3.5.2 Sélectionner les valeurs uniques de ces combinaisons
+    #3.8.2 Sélectionner les valeurs uniques de ces combinaisons
     distinct(SDOM, GR_STATION, TYF, enjeux, classe, DESC_FAMC) %>%
     
-    #3.5.3 Appliquer la fonction qu'on a déjà écrit
+    #3.8.3 Appliquer la fonction qu'on a déjà écrit
     group_by(SDOM, GR_STATION, TYF, enjeux) %>% 
     do(trouverCourbesCompromis(.)) %>% 
     ungroup() 
   
   #tempCompromisCatCourbes <- compromisCatCourbes
-  #3.5.4 Sélectionner les 2 colonnes qu'on veut
+  #3.8.4 Sélectionner les 2 colonnes qu'on veut
   compromisCatCourbes <- 
     compromisCatCourbes %>% 
     mutate_all(as.character) %>% 
     select(SDOM, DESC_FAMC, DESC_FAMC_Comp) %>% 
     
-    #3.5.5 Faire une corréction pour les SNAT (improductifs)
+    #3.8.5 Faire une corréction pour les SNAT (improductifs)
     mutate(DESC_FAMC = ifelse(grepl("SNAT", DESC_FAMC_Comp), 
                               DESC_FAMC_Comp, DESC_FAMC)) %>% 
     
-    #3.5.6 Pour enlever des doublons SNAT
+    #3.8.6 Pour enlever des doublons SNAT
     distinct()
   
   
-  #3.5.7 Utiliser ce catalogue pour trouver les courbes de compromis des
+  #3.8.7 Utiliser ce catalogue pour trouver les courbes de compromis des
   #polygones
   dfDonneesPoly <- left_join(dfDonneesPoly,
                              compromisCatCourbes, 
                              by = c("SDOM_BIO" = "SDOM", "COURBE" = "DESC_FAMC"))
   
   
-  #3.5.8 Faire un avertissement qui nous dit quelles courbes nous manquent
+  #3.8.8 Faire un avertissement qui nous dit quelles courbes nous manquent
   courbesManq <- dfDonneesPoly %>% filter(is.na(DESC_FAMC_Comp))
   if(nrow(courbesManq) > 0){
     
@@ -560,51 +548,24 @@ faireKnn <- function(dfDonneesPoly,
             " n'existent pas dans le catalogue de courbes.")
   }
   
-  
-  #3.5.9 Enlever des peuplements qui n'ont pas une courbe et changer le nom
+ 
+  #3.8.9 Enlever des peuplements qui n'ont pas une courbe et changer le nom
   #de la variable
   dfDonneesPoly <- 
     dfDonneesPoly %>% 
     filter(!is.na(DESC_FAMC_Comp)) %>% 
     select(-COURBE) %>%
     rename(COURBE = DESC_FAMC_Comp)
+ 
+
   
-  
-  #3.6 Déterminer la classec du polygone
-  #3.6.1 Calculer le point maximale de chaque courbe
-  # pointMaxCourbe <-
-  #   catCourbes %>% group_by(DESC_FAMC) %>%
-  #   slice(which(VOL_HA == max(VOL_HA))[1]) %>%
-  #   ungroup() %>%
-  # 
-  #   #3.6.2 Attribuer une classe de age a chaque point maxile (selon
-  #   #les classes d'âge des polygones)
-  #   mutate(clageMaxCourbe =
-  #            case_when(.$age <= 55 ~ 50,
-  #                      .$age <= 75 ~ 70,
-  #                      .$age <= 95 ~ 90,
-  #                      TRUE ~ 120)) %>%
-  #   select(DESC_FAMC, clageMaxCourbe)
-  # 
-  # 
-  # #3.6.3 Joindre l'âge maximale de la courbe au jeu de données
-  # dfDonneesPoly <- left_join(dfDonneesPoly, pointMaxCourbe,
-  #                            by = c("COURBE" = "DESC_FAMC"))
-  # 
-  # 
-  # #3.6.4 Créer la classec avec la classe d'âge de la courbe au point maximale
-  # dfDonneesPoly <-
-  #   dfDonneesPoly %>%
-  #   mutate(classec = ifelse(clage <= clageMaxCourbe, "1", "2")) %>%
-  #   select(-clageMaxCourbe)
-  #######################################################################
-  #Cette partie a été simplifiée, mais j'ai décidé de garder le code en
-  #commentaire, juste au cas où ils veulent que je change ça plus tard
+  #3.9 Déterminer la classec du polygone
+  #3.9.1 Calculer le point maximale de chaque courbe
   dfDonneesPoly <-
     dfDonneesPoly %>%
     mutate(clage = as.numeric(as.character(clage)),
            classec = ifelse(clage <= 70, "1", "2"))
-  #######################################################################
+
   
   
   
@@ -638,18 +599,22 @@ faireKnn <- function(dfDonneesPoly,
   
   #Ajouter le type de couvert
   dfDonneesPoly$typeCouv <- ifelse(dfDonneesPoly$TYF %in% c("Ep", "EpRx", "Sb",
-                                                            "PgRx", "SbRx", "Pg"),
+                                                            "PgRx", "SbRx", "Pg",
+                                                            "To", "ToRx", "Rx"),
                                    "R",
-                                   ifelse(dfDonneesPoly$TYF %in% c("PeFx", "BpFx"), "F",
+                                   ifelse(dfDonneesPoly$TYF %in% c("BjFx", "Es", "EsFx",
+                                                                   "PeFx", "BpFx", "Fx"), 
+                                          "F",
                                           "M"))
   catCourbes$typeCouv <- ifelse(catCourbes$TYF %in% c("Ep", "EpRx", "Sb",
-                                                      "PgRx", "SbRx", "Pg"),
+                                                      "PgRx", "SbRx", "Pg",
+                                                      "To", "ToRx", "Rx"),
                                 "R",
-                                ifelse(catCourbes$TYF %in% c("PeFx",
-                                                             "BpFx"), 
+                                ifelse(catCourbes$TYF %in% c("BjFx", "Es", "EsFx",
+                                                             "PeFx", "BpFx", "Fx"), 
                                        "F",
                                        "M"))
-  
+ 
   #5.1 Si on a des peuplements "SNAT", on va remplacer les valeurs de quelques
   #variables par des NA
   dfDonneesPoly <- 
@@ -663,7 +628,7 @@ faireKnn <- function(dfDonneesPoly,
            grandTYF = ifelse(grepl("SNAT", COURBE), NA, as.character(grandTYF)))
   
   
-  
+ 
   #5.2 Identifier les groupes évolutifs dont la courbe complète
   #(i.e. les 2 côtés) a moins que supMin_courbe
   idCourbesPetites <-
@@ -863,6 +828,76 @@ faireKnn <- function(dfDonneesPoly,
       
       
     }
+    
+    
+    
+    #5.4.0 Finalement il faut faire la même chose pour les EPCs
+    #5.4.0.1 Calculer la somme de toutes les EPCs
+    supEPC <- 
+      dfDonneesPoly %>% 
+      filter(Enjeux_evo %in% "EPC") %>% 
+      summarise(sumSup = sum(SUPERFICIE)) %>% 
+      unlist %>% unname
+    
+    #5.4.0.2 Si la superficie totale des improductifs est plus petite que
+    #le seuil spécifié
+    if(supEPC < supMin_courbe){
+      
+      #5.4.0.3 Identifier le groupe EPC le plus gros
+      courbesEPC <- 
+        dfDonneesPoly %>% 
+        filter(Enjeux_evo %in% "EPC") %>% 
+        group_by(ID_COURBE, COURBE, classec) %>% 
+        summarise(sumSup = sum(SUPERFICIE)) %>% 
+        ungroup() %>% 
+        arrange(desc(sumSup)) %>% 
+        slice(1) %>% 
+        select(ID_COURBE, COURBE, classec) %>%
+        as.data.frame()
+      
+      
+      #5.4.0.4 Créer le tableau qu'on va ajouter à l'extrant "dfCourbesPetites"
+      EPC_CourbesPetites <- 
+        dfDonneesPoly %>% 
+        filter(Enjeux_evo %in% "EPC") %>% 
+        group_by(COURBE, classec) %>% 
+        summarise(sumSup = sum(SUPERFICIE)) %>% 
+        ungroup() %>% 
+        mutate(courbeEquiv = courbesEPC[1, "COURBE"],
+               condNumero = "cond6") %>% 
+        rename(courbeOri = COURBE) %>% 
+        select(courbeOri, courbeEquiv, classec, sumSup, condNumero)
+      
+      
+      #5.4.0.5 On remplace la courbe dans le jeu de données principal
+      dfDonneesPoly <- 
+        dfDonneesPoly %>% 
+        mutate(COURBE = ifelse(Enjeux_evo %in% "EPC", 
+                               courbesEPC[1, "COURBE"],
+                               as.character(COURBE)),
+               ID_COURBE = ifelse(Enjeux_evo %in% "EPC", 
+                                  courbesEPC[1, "ID_COURBE"],
+                                  as.character(ID_COURBE)),
+               classec = ifelse(Enjeux_evo %in% "EPC", 
+                                courbesEPC[1, "classec"],
+                                as.character(classec)))
+      
+      
+      #5.4.0.6 On enleve ces cas de l'objet "courbesPetites" parce qu'on n'a
+      #plus besoin de faire des DTWs pour eux
+      courbesPetites <- 
+        courbesPetites %>% 
+        filter(!Enjeux_evo %in% "EPC")
+      
+      
+      #5.4.0.7 Créer un indicateur pour dire que la superficie des
+      #EPCs était trop petite pour qu'on puisse l'ajouter 
+      #au jeu de données des peuplements trop petits
+      EPC_trop_petit <- TRUE
+      
+      
+    }
+    
     
     
     for(i in 1:nrow(courbesPetites)){
@@ -1171,8 +1206,16 @@ faireKnn <- function(dfDonneesPoly,
       courbesPetites <- bind_rows(courbesPetites, improdCourbesPetites)
     }
     
+    #5.10 Si la superficie des Improds était trop petite, on les a mis tous
+    #dans un seul groupe mais on n'a pas fait de DTW. Alors, il faut rajouter
+    #ça à l'extrant des courbes petites maintenant
+    if(exists("EPC_trop_petit")){
+      
+      courbesPetites <- bind_rows(courbesPetites, EPC_CourbesPetites)
+    }
     
-    #5.10 Faire un petit avertissement pour dire au utilisateur si on a 
+    
+    #5.11 Faire un petit avertissement pour dire au utilisateur si on a 
     #changé les courbes de quelques groupes évolutifs
     warning(paste0(nrow(courbesPetites), " groupes évolutifs avaient une superficie ",
                    "totale inférieure à la superficie minimale spécifiée (", 
@@ -1182,7 +1225,6 @@ faireKnn <- function(dfDonneesPoly,
                    "courbes trouvées ont été stockées dans 'dfCourbesPetites'."))
     
   }
-  
   
   
   
@@ -1505,7 +1547,13 @@ faireKnn <- function(dfDonneesPoly,
               catCourbes %>% transmute(ID_COURBE, 
                                        clusterAttach = as.character(VOL_HA), 
                                        ageAttach = age),
-              by = c("ID_COURBE", "clusterAttach"))
+              by = c("ID_COURBE", "clusterAttach")) %>% 
+    
+    #Enlever des doublons possibles à cause des points d'attachement qui ont
+    #des âges différentes mais des volumes pareilles
+    distinct(ID_BFEC, .keep_all = TRUE)  
+                                         
+  
   
   
   #8.2 Créer le dataframe des polygones en sélectionnant les 2 colonnes qu'on 
