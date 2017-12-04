@@ -100,6 +100,16 @@
 #catalogue de courbes regroupé par SDOM; GR_STATION, TYF et enjeux
 trouverCourbesCompromis <- function(valeurUniqueCourbes){
   
+  #0.0 Faire une exception pour les SNATs et finir cette fonction tout de suite
+  if(any(grepl('SNAT', valeurUniqueCourbes$DESC_FAMC))){
+    
+    catCompromis <- valeurUniqueCourbes
+    catCompromis$DESC_FAMC_Comp <- catCompromis$DESC_FAMC
+    
+    return(catCompromis)
+    
+  } 
+  
   #0.1 Créer catalogue avec toutes les possibilités
   clVols <- 
     data.frame(classe = c(NA, "v1", "v12", "v2", "v3", "v34", "v4", "v5"))
@@ -355,7 +365,7 @@ faireKnn <- function(dfDonneesPoly,
             "Leur valeur a été remplacé par '0' lors de cette analyse.")
   }
   
-  
+ 
   
   #3. Gérer l'échelle de la courbe: i.e est-ce qu'on utilise une courbe v1,
   #v12 ou génerale?
@@ -831,72 +841,72 @@ faireKnn <- function(dfDonneesPoly,
     
     
     
-    #5.4.0 Finalement il faut faire la même chose pour les EPCs
-    #5.4.0.1 Calculer la somme de toutes les EPCs
-    supEPC <- 
-      dfDonneesPoly %>% 
-      filter(Enjeux_evo %in% "EPC") %>% 
-      summarise(sumSup = sum(SUPERFICIE)) %>% 
-      unlist %>% unname
-    
-    #5.4.0.2 Si la superficie totale des improductifs est plus petite que
-    #le seuil spécifié
-    if(supEPC < supMin_courbe){
-      
-      #5.4.0.3 Identifier le groupe EPC le plus gros
-      courbesEPC <- 
-        dfDonneesPoly %>% 
-        filter(Enjeux_evo %in% "EPC") %>% 
-        group_by(ID_COURBE, COURBE, classec) %>% 
-        summarise(sumSup = sum(SUPERFICIE)) %>% 
-        ungroup() %>% 
-        arrange(desc(sumSup)) %>% 
-        slice(1) %>% 
-        select(ID_COURBE, COURBE, classec) %>%
-        as.data.frame()
-      
-      
-      #5.4.0.4 Créer le tableau qu'on va ajouter à l'extrant "dfCourbesPetites"
-      EPC_CourbesPetites <- 
-        dfDonneesPoly %>% 
-        filter(Enjeux_evo %in% "EPC") %>% 
-        group_by(COURBE, classec) %>% 
-        summarise(sumSup = sum(SUPERFICIE)) %>% 
-        ungroup() %>% 
-        mutate(courbeEquiv = courbesEPC[1, "COURBE"],
-               condNumero = "cond6") %>% 
-        rename(courbeOri = COURBE) %>% 
-        select(courbeOri, courbeEquiv, classec, sumSup, condNumero)
-      
-      
-      #5.4.0.5 On remplace la courbe dans le jeu de données principal
-      dfDonneesPoly <- 
-        dfDonneesPoly %>% 
-        mutate(COURBE = ifelse(Enjeux_evo %in% "EPC", 
-                               courbesEPC[1, "COURBE"],
-                               as.character(COURBE)),
-               ID_COURBE = ifelse(Enjeux_evo %in% "EPC", 
-                                  courbesEPC[1, "ID_COURBE"],
-                                  as.character(ID_COURBE)),
-               classec = ifelse(Enjeux_evo %in% "EPC", 
-                                courbesEPC[1, "classec"],
-                                as.character(classec)))
-      
-      
-      #5.4.0.6 On enleve ces cas de l'objet "courbesPetites" parce qu'on n'a
-      #plus besoin de faire des DTWs pour eux
-      courbesPetites <- 
-        courbesPetites %>% 
-        filter(!Enjeux_evo %in% "EPC")
-      
-      
-      #5.4.0.7 Créer un indicateur pour dire que la superficie des
-      #EPCs était trop petite pour qu'on puisse l'ajouter 
-      #au jeu de données des peuplements trop petits
-      EPC_trop_petit <- TRUE
-      
-      
-    }
+    # #5.4.0 Finalement il faut faire la même chose pour les EPCs
+    # #5.4.0.1 Calculer la somme de toutes les EPCs
+    # supEPC <- 
+    #   dfDonneesPoly %>% 
+    #   filter(Enjeux_evo %in% "EPC") %>% 
+    #   summarise(sumSup = sum(SUPERFICIE)) %>% 
+    #   unlist %>% unname
+    # 
+    # #5.4.0.2 Si la superficie totale des improductifs est plus petite que
+    # #le seuil spécifié
+    # if(supEPC < supMin_courbe){
+    #   
+    #   #5.4.0.3 Identifier le groupe EPC le plus gros
+    #   courbesEPC <- 
+    #     dfDonneesPoly %>% 
+    #     filter(Enjeux_evo %in% "EPC") %>% 
+    #     group_by(ID_COURBE, COURBE, classec) %>% 
+    #     summarise(sumSup = sum(SUPERFICIE)) %>% 
+    #     ungroup() %>% 
+    #     arrange(desc(sumSup)) %>% 
+    #     slice(1) %>% 
+    #     select(ID_COURBE, COURBE, classec) %>%
+    #     as.data.frame()
+    #   
+    #   
+    #   #5.4.0.4 Créer le tableau qu'on va ajouter à l'extrant "dfCourbesPetites"
+    #   EPC_CourbesPetites <- 
+    #     dfDonneesPoly %>% 
+    #     filter(Enjeux_evo %in% "EPC") %>% 
+    #     group_by(COURBE, classec) %>% 
+    #     summarise(sumSup = sum(SUPERFICIE)) %>% 
+    #     ungroup() %>% 
+    #     mutate(courbeEquiv = courbesEPC[1, "COURBE"],
+    #            condNumero = "cond6") %>% 
+    #     rename(courbeOri = COURBE) %>% 
+    #     select(courbeOri, courbeEquiv, classec, sumSup, condNumero)
+      # 
+      # 
+      # #5.4.0.5 On remplace la courbe dans le jeu de données principal
+      # dfDonneesPoly <- 
+      #   dfDonneesPoly %>% 
+      #   mutate(COURBE = ifelse(Enjeux_evo %in% "EPC", 
+      #                          courbesEPC[1, "COURBE"],
+      #                          as.character(COURBE)),
+      #          ID_COURBE = ifelse(Enjeux_evo %in% "EPC", 
+      #                             courbesEPC[1, "ID_COURBE"],
+      #                             as.character(ID_COURBE)),
+      #          classec = ifelse(Enjeux_evo %in% "EPC", 
+      #                           courbesEPC[1, "classec"],
+      #                           as.character(classec)))
+    #   
+    #   
+    #   #5.4.0.6 On enleve ces cas de l'objet "courbesPetites" parce qu'on n'a
+    #   #plus besoin de faire des DTWs pour eux
+    #   courbesPetites <- 
+    #     courbesPetites %>% 
+    #     filter(!Enjeux_evo %in% "EPC")
+    #   
+    #   
+    #   #5.4.0.7 Créer un indicateur pour dire que la superficie des
+    #   #EPCs était trop petite pour qu'on puisse l'ajouter 
+    #   #au jeu de données des peuplements trop petits
+    #   EPC_trop_petit <- TRUE
+    #   
+    #   
+    # }
     
     
     
@@ -935,18 +945,21 @@ faireKnn <- function(dfDonneesPoly,
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$TYF,
               df_tempCatCourbes$enjeux, sep = "_") %in%
         paste(courbesPetites$GR_STATION[i], courbesPetites$TYF[i],
-              courbesPetites$Enjeux_evo[i], sep = "_")
+              courbesPetites$Enjeux_evo[i], sep = "_") &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
       #5.4.2.2 Courbe équivalente dans le même groupe de station et TYF
       cond_sDom <- 
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$TYF, sep = "_") %in%
-        paste(courbesPetites$GR_STATION[i], courbesPetites$TYF[i], sep = "_")
+        paste(courbesPetites$GR_STATION[i], courbesPetites$TYF[i], sep = "_") &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
       
       #5.4.2.3 Courbe équivalente dans le même famStat et TYF
       cond_famTyf <-
         paste(df_tempCatCourbes$FAM_STAT, df_tempCatCourbes$TYF, sep = "_") %in%
-        paste(courbesPetites$FAM_STAT[i], courbesPetites$TYF[i], sep = "_")
+        paste(courbesPetites$FAM_STAT[i], courbesPetites$TYF[i], sep = "_") &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
       
       #5.4.2.4 Courbe équivalente dans le même grStat, type de couvert,
@@ -955,33 +968,70 @@ faireKnn <- function(dfDonneesPoly,
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$typeCouv, 
               df_tempCatCourbes$grandTYF,sep = "_") %in%
         paste(courbesPetites$GR_STATION[i], courbesPetites$typeCouv[i], 
-              courbesPetites$grandTYF[i],sep = "_") 
+              courbesPetites$grandTYF[i],sep = "_") &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
       
       #5.4.2.5 Courbe équivalente dans le même grStat et type de couvert
       cond_couv <-
         paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$typeCouv, sep = "_") %in%
-        paste(courbesPetites$GR_STATION[i], courbesPetites$typeCouv[i], sep = "_")
+        paste(courbesPetites$GR_STATION[i], courbesPetites$typeCouv[i], sep = "_") &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
       
       #5.4.2.6 Courbe équivalente dans le même TYF
       cond_tyf <- 
         paste(df_tempCatCourbes$TYF, sep = "_") %in%
-        paste(courbesPetites$TYF[i], sep = "_")
+        paste(courbesPetites$TYF[i], sep = "_") &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
       
       #5.4.2.7 Courbe équivalente dans le même groupe de station
       cond_grStat <-
         paste(df_tempCatCourbes$GR_STATION, sep = "_") %in% 
-        paste(courbesPetites$GR_STATION[i], sep = "_") 
+        paste(courbesPetites$GR_STATION[i], sep = "_") &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
       
       #5.4.2.8 N'importe quel courbe dans le même sous-domaine 
       cond_SDomSeule <-
         paste(df_tempCatCourbes$SDOM) %in% 
-        paste(courbesPetites$SDOM_BIO[i]) 
+        paste(courbesPetites$SDOM_BIO[i]) &
+        !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
-      
+      # if(courbesPetites$Enjeux_evo[i] %in% "EPC") {browser()}
+     
+      #5.4.2.9 Conditions des EPCs: 
+      if(courbesPetites$Enjeux_evo[i] %in% "EPC"){
+        
+        courbesPetites_EPC <- courbesPetites[i,]
+        
+        #4.2.9.1 Laisser tomber le sdom
+        cond_EPC_sDom <- 
+          paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$TYF, sep = "_") %in%
+          paste(courbesPetites_EPC$GR_STATION[i], courbesPetites_EPC$TYF[i], 
+                sep = "_") &
+          df_tempCatCourbes$enjeux %in% "EPC" 
+        
+        #4.2.9.2 Laisser tomber le groupe de station
+        cond_EPC_famStat <- 
+          paste(df_tempCatCourbes$FAM_STAT, df_tempCatCourbes$TYF, sep = "_") %in%
+          paste(courbesPetites_EPC$FAM_STAT[i], courbesPetites_EPC$TYF[i], 
+                sep = "_") &
+          df_tempCatCourbes$enjeux %in% "EPC" 
+        
+        #4.2.9.3 Guarder que le TYF
+        cond_EPC_tyf <- 
+         df_tempCatCourbes$TYF %in% courbesPetites_EPC$TYF[i] &
+          df_tempCatCourbes$enjeux %in% "EPC" 
+        
+        #4.2.9.4 Guarder que l'enjeux EPC
+        cond_EPC_dernier <- 
+          df_tempCatCourbes$enjeux %in% "EPC" 
+        browser()
+      }
+
+        
       
       #5.4.3 Appliquer les filters
       #5.4.3.1 Laisser tomber juste le sous domaine (en gardant l'enjeux)
@@ -1078,6 +1128,60 @@ faireKnn <- function(dfDonneesPoly,
         
         #Mettre à jour le numéro de la condition utilisée
         condNumero <- "cond8"
+        
+      } 
+      
+      
+      #5.4.3.9 Traiter des EPCs
+      if(courbesPetites$Enjeux_evo[i] %in% "EPC"){
+        
+        #5.4.3.9.1 Condition EPC 1
+        if(any(cond_EPC_sDom)){
+          
+          #Extraire l'ID des courbes qui sont semblables
+          nomFiltreCourbe <- 
+            df_tempCatCourbes %>% filter(cond_EPC_sDom ) %>% 
+            distinct(ID_COURBE) %>% unlist() %>% unname()
+          
+          #Mettre à jour le numéro de la condition utilisée
+          condNumero <- "cond_EPC1"
+          
+          
+          #5.4.3.9.2 Condition EPC 2
+        } else if (any(cond_EPC_famStat)){ 
+          
+          #Extraire l'ID des courbes qui sont semblables
+          nomFiltreCourbe <- 
+            df_tempCatCourbes %>% filter(cond_EPC_famStat  ) %>% 
+            distinct(ID_COURBE) %>% unlist() %>% unname()
+          
+          #Mettre à jour le numéro de la condition utilisée
+          condNumero <- "cond_EPC2"
+          
+          
+          #5.4.3.9.3 Condition EPC 3
+        } else if (any(cond_EPC_tyf)){ 
+          
+          #Extraire l'ID des courbes qui sont semblables
+          nomFiltreCourbe <- 
+            df_tempCatCourbes %>% filter(cond_EPC_tyf) %>% 
+            distinct(ID_COURBE) %>% unlist() %>% unname()
+          
+          #Mettre à jour le numéro de la condition utilisée
+          condNumero <- "cond_EPC3"
+         
+          
+          #5.4.3.9.4 Condition EPC 4 
+        } else if (any(cond_EPC_dernier)){ 
+          browser()
+          #Extraire l'ID des courbes qui sont semblables
+          nomFiltreCourbe <- 
+            df_tempCatCourbes %>% filter(cond_EPC_dernier ) %>% 
+            distinct(ID_COURBE) %>% unlist() %>% unname()
+          
+          #Mettre à jour le numéro de la condition utilisée
+          condNumero <- "cond_EPC4"
+        }
       }
       
       
@@ -1206,13 +1310,13 @@ faireKnn <- function(dfDonneesPoly,
       courbesPetites <- bind_rows(courbesPetites, improdCourbesPetites)
     }
     
-    #5.10 Si la superficie des Improds était trop petite, on les a mis tous
-    #dans un seul groupe mais on n'a pas fait de DTW. Alors, il faut rajouter
-    #ça à l'extrant des courbes petites maintenant
-    if(exists("EPC_trop_petit")){
-      
-      courbesPetites <- bind_rows(courbesPetites, EPC_CourbesPetites)
-    }
+    # #5.10 Si la superficie des Improds était trop petite, on les a mis tous
+    # #dans un seul groupe mais on n'a pas fait de DTW. Alors, il faut rajouter
+    # #ça à l'extrant des courbes petites maintenant
+    # if(exists("EPC_trop_petit")){
+    #   
+    #   courbesPetites <- bind_rows(courbesPetites, EPC_CourbesPetites)
+    # }
     
     
     #5.11 Faire un petit avertissement pour dire au utilisateur si on a 
