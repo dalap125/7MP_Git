@@ -334,10 +334,14 @@ faireKnn <- function(dfDonneesPoly,
   if(!"DESC_FAMC" %in% names(catCourbes)){
     catCourbes <- 
       catCourbes %>% 
-      mutate(DESC_FAMC = ifelse(classe %in% c(NA, "NA", "Na", "na"),
-                                paste(SDOM, GR_STATION, TYF, enjeux, sep = "_"),
-                                paste(SDOM, GR_STATION, TYF, enjeux, classe, sep = "_")))
-  }
+      mutate(DESC_FAMC = 
+               case_when(.$Improd %in% "SNAT" ~ 
+                           paste(.$SDOM, substr(.$GR_STATION, 1, 3), "SNAT", sep = "_"),
+                         .$classe %in% c(NA, "NA", "Na", "na") ~
+                           paste(.$SDOM, .$GR_STATION, .$TYF, .$enjeux, sep = "_"),
+                         TRUE ~ paste(.$SDOM, .$GR_STATION, .$TYF, .$enjeux, 
+                                      .$classe, sep = "_")))
+                }
   
   
   
@@ -999,7 +1003,6 @@ faireKnn <- function(dfDonneesPoly,
         paste(courbesPetites$SDOM_BIO[i]) &
         !df_tempCatCourbes$enjeux %in% "EPC"  #on ne veux pas les EPCs
       
-      # if(courbesPetites$Enjeux_evo[i] %in% "EPC") {browser()}
      
       #5.4.2.9 Conditions des EPCs: 
       if(courbesPetites$Enjeux_evo[i] %in% "EPC"){
@@ -1028,7 +1031,7 @@ faireKnn <- function(dfDonneesPoly,
         #4.2.9.4 Guarder que l'enjeux EPC
         cond_EPC_dernier <- 
           df_tempCatCourbes$enjeux %in% "EPC" 
-        browser()
+     
       }
 
         
@@ -1173,7 +1176,7 @@ faireKnn <- function(dfDonneesPoly,
           
           #5.4.3.9.4 Condition EPC 4 
         } else if (any(cond_EPC_dernier)){ 
-          browser()
+         
           #Extraire l'ID des courbes qui sont semblables
           nomFiltreCourbe <- 
             df_tempCatCourbes %>% filter(cond_EPC_dernier ) %>% 
