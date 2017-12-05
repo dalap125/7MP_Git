@@ -1012,20 +1012,20 @@ faireKnn <- function(dfDonneesPoly,
         #4.2.9.1 Laisser tomber le sdom
         cond_EPC_sDom <- 
           paste(df_tempCatCourbes$GR_STATION, df_tempCatCourbes$TYF, sep = "_") %in%
-          paste(courbesPetites_EPC$GR_STATION[i], courbesPetites_EPC$TYF[i], 
+          paste(courbesPetites_EPC$GR_STATION, courbesPetites_EPC$TYF, 
                 sep = "_") &
           df_tempCatCourbes$enjeux %in% "EPC" 
         
         #4.2.9.2 Laisser tomber le groupe de station
         cond_EPC_famStat <- 
           paste(df_tempCatCourbes$FAM_STAT, df_tempCatCourbes$TYF, sep = "_") %in%
-          paste(courbesPetites_EPC$FAM_STAT[i], courbesPetites_EPC$TYF[i], 
+          paste(courbesPetites_EPC$FAM_STAT, courbesPetites_EPC$TYF, 
                 sep = "_") &
           df_tempCatCourbes$enjeux %in% "EPC" 
         
         #4.2.9.3 Guarder que le TYF
         cond_EPC_tyf <- 
-         df_tempCatCourbes$TYF %in% courbesPetites_EPC$TYF[i] &
+         df_tempCatCourbes$TYF %in% courbesPetites_EPC$TYF &
           df_tempCatCourbes$enjeux %in% "EPC" 
         
         #4.2.9.4 Guarder que l'enjeux EPC
@@ -1134,7 +1134,7 @@ faireKnn <- function(dfDonneesPoly,
         
       } 
       
-      
+      # if(grepl("6O_RFi_F_Sb", courbesPetites$COURBE[i])){browser()}
       #5.4.3.9 Traiter des EPCs
       if(courbesPetites$Enjeux_evo[i] %in% "EPC"){
         
