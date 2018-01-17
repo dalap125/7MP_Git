@@ -577,8 +577,8 @@ faireKnn <- function(dfDonneesPoly,
   #3.9.1 Calculer le point maximale de chaque courbe
   dfDonneesPoly <-
     dfDonneesPoly %>%
-    mutate(clage = as.numeric(as.character(clage)),
-           classec = ifelse(clage <= 70, "1", "2"))
+    mutate(clage = as.numeric(as.character(clage)))
+           # classec = ifelse(clage <= 70, "1", "2"))
 
   
   
