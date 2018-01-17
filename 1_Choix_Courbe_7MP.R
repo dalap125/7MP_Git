@@ -459,11 +459,11 @@ choixCourbe <-
       rename(COURBE = DESC_FAMC_Comp)
     
     
-    #3.6 Déterminer la classec du polygone: age inférieure ou égale à 70: classec 1
-    dfDonneesPoly <-
-      dfDonneesPoly %>%
-      mutate(clage = as.numeric(as.character(clage)),
-             classec = ifelse(clage <= 70, "1", "2"))
+    # #3.6 Déterminer la classec du polygone: age inférieure ou égale à 70: classec 1
+    # dfDonneesPoly <-
+    #   dfDonneesPoly %>%
+    #   mutate(clage = as.numeric(as.character(clage)),
+    #          classec = ifelse(clage <= 70, "1", "2"))
     
     
     
