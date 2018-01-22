@@ -329,7 +329,7 @@ faireKnn <- function(dfDonneesPoly,
                           paste(SDOM_BIO, GR_STATION, TYF, 
                                 Enjeux_evo, cl_vol5, sep = "_")))
   }
-  
+ 
   #2.2.4 DESC_FAMC dans le catalogue des courbes
   if(!"DESC_FAMC" %in% names(catCourbes)){
     catCourbes <- 
@@ -526,6 +526,10 @@ faireKnn <- function(dfDonneesPoly,
     #3.8.2 Sélectionner les valeurs uniques de ces combinaisons
     distinct(SDOM, GR_STATION, TYF, enjeux, classe, DESC_FAMC) %>%
     
+    #Pour eviter des bugs relationes avec le join de factor NA avec
+    #des caracteres "NA"
+    mutate_if(is.factor, as.character) %>% 
+    
     #3.8.3 Appliquer la fonction qu'on a déjà écrit
     group_by(SDOM, GR_STATION, TYF, enjeux) %>% 
     do(trouverCourbesCompromis(.)) %>% 
@@ -562,7 +566,7 @@ faireKnn <- function(dfDonneesPoly,
             " n'existent pas dans le catalogue de courbes.")
   }
   
- 
+
   #3.8.9 Enlever des peuplements qui n'ont pas une courbe et changer le nom
   #de la variable
   dfDonneesPoly <- 
@@ -669,7 +673,7 @@ faireKnn <- function(dfDonneesPoly,
     filter(sumSup < supMin_pointAttach) %>% 
     distinct(COURBE, classec)
   
-  
+ 
   #5.2.4. Identifier les polygones qui font partie de ces 2 jeux de données 
   courbesPetites <- 
     dfDonneesPoly %>% 
