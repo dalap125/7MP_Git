@@ -434,7 +434,7 @@ faireKnn <- function(dfDonneesPoly,
     dfDonneesPoly %>% 
     group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo) %>% 
     summarise(echelle_gen = sum(SUPERFICIE)) %>% 
-    ungroup()
+    ungroup() 
   
   
   #3.6 Joindre ces 2 indicateurs au jeu de données principal
