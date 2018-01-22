@@ -69,15 +69,20 @@ test8551 <-
   read_csv(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
                      "Script_Plusieurs_SDOMs\\7MP\\Inputs", "dfpoly_08551.csv"))
 
-# test8551 <- test8551 %>% rename(TYF = Gtyf, GR_STATION = gr_stat,
-#                                 v_TOT = gTOT)
 
 #Créer une variable ID_BFEC biddon qui n'existaient pas dans le fichier que j'avais
-testData <- test2751
+testData <- 
+  test2751 %>% 
+  rename(TYF = Gtyf, GR_STATION = gr_stat,
+        v_TOT = gTOT)
 
 testData <- 
   testData %>% mutate(ID_BFEC = 1:nrow(.)) %>% 
-  filter(SDOM_BIO %in% c("6O", "6E", "5O"))
+  filter(SDOM_BIO %in% c("6O", "6E", "5O")) %>% 
+  
+  #I need to create this variable (classec) here, but Olivier
+  #doesn't really need it.
+  mutate(classec = ifelse(clage <= 70, "1", "2"))
 
 
 #Catalogue des courbes 6O
@@ -98,12 +103,18 @@ testCourbes6E <-
                      "Script_Plusieurs_SDOMs\\7MP\\Inputs",
                      "Courbes_6est_Horizon_   30 octobre 2017.csv"))
 
+testCourbesEPC <- 
+  read_csv(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
+                     "Script_Plusieurs_SDOMs\\7MP\\Inputs",
+                     "Courbes_EPC_Horizon_   4 decembre 2017.csv"))
+
 
 #Joindre les catalogues
 testCatCourbes <- 
   bind_rows(testCourbes6O %>% select(NOM_FAMC:VOL_HA),
             testCourbes6E %>% select(NOM_FAMC:VOL_HA),
-            testCourbes5O %>% select(NOM_FAMC:VOL_HA))
+            testCourbes5O %>% select(NOM_FAMC:VOL_HA),
+            testCourbesEPC %>% select(NOM_FAMC:VOL_HA))
 
 
 testCatCourbes <-
@@ -220,42 +231,61 @@ source(file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
                  "Script_Plusieurs_SDOMs\\7MP\\7MP_Git",
                  "Fonction_MultiSD_KNN.R"))
 
-supMin_courbe <- 10000
-supMin_pointAttach <- 1000 
+par1 <- c(1, 250, 3000, 3000, 5000, 5000, 8000, 8000, 10000, 10000)
+par2 <- c(1, 250, 500, 1000, 500, 1000, 500, 1000, 500, 1000)
 
-exempleKNN <- 
-  faireKnn(dfDonneesPoly = testData,
-           catCourbes = testCatCourbes,
-           supMin_pointAttach = supMin_pointAttach,
-           supMin_courbe = supMin_courbe,
-           nombreMaxClusterCroissance = 10, 
-           nombreMaxClusterSenescence = 5)
+for(i in 1:length(par1)){
+  
+  # supMin_courbe <- par1[i]
+  # supMin_pointAttach <- par2[i]
+  
+  supMin_courbe <- 5000
+  supMin_pointAttach <- 500
+  
+  
+  exempleKNN <- 
+    faireKnn(dfDonneesPoly = testData,
+             catCourbes = testCatCourbes,
+             supMin_pointAttach = supMin_pointAttach,
+             supMin_courbe = supMin_courbe,
+             nombreMaxClusterCroissance = 10, 
+             nombreMaxClusterSenescence = 5)
+  
+  
 
-testChoix <- 
-  choixCourbe(
-    dfDonneesPoly = testData,
-    catCourbes = testCatCourbes,
-    supMin_pointAttach = supMin_pointAttach,
-    supMin_courbe = supMin_courbe
-  )
+# testChoix <- 
+#   choixCourbe(
+#     dfDonneesPoly = testData %>% select(one_of(varsDonneesPoly)),
+#     catCourbes = testCatCourbes %>% select(one_of(varsCatCourbes)),
+#     supMin_pointAttach = supMin_pointAttach,
+#     supMin_courbe = supMin_courbe
+#   )
+
+# dfPoly <- testChoix$dfPoly
+# dfPoly <- left_join(testData, dfPoly, by = "ID_BFEC")
+
+# testFaireKnn <- 
+#   faireKnn(dfDonneesPoly = dfPoly,
+#            catCourbes = testCatCourbes,
+#            supMin_pointAttach = supMin_pointAttach,
+#            nombreMaxClusterCroissance = 10, 
+#            nombreMaxClusterSenescence = 5)
 
 
+  #3. Après avoir faite rouler la fonction, on peut créer 2 dataframes en extrayant les 
+  #dataframes qui sont stockés dans la liste créée par la fonction
+  #3.1 Extraire les extrants (list to datafrane)
+  dfPoly <- exempleKNN$dfPoly
+  dfStrate <- exempleKNN$dfStrate
+  dfCourbesPetites <- exempleKNN$dfCourbesPetites
+  
+  dfCourbesPetites %>% filter(grepl("_SNAT", courbeOri))
+  # asd <- dfStrate %>% group_by(COURBE) %>% summarise(sumSup = sum(SUPERFICIE))
 
-
-#3. Après avoir faite rouler la fonction, on peut créer 2 dataframes en extrayant les 
-#dataframes qui sont stockés dans la liste créée par la fonction
-#3.1 Extraire les extrants (list to datafrane)
-dfPoly <- exempleKNN$dfPoly
-dfStrate <- exempleKNN$dfStrate
-dfCourbesPetites <- exempleKNN$dfCourbesPetites
-
-
-# asd <- dfStrate %>% group_by(COURBE) %>% summarise(sumSup = sum(SUPERFICIE))
-
-
-#3.2 Faire le join avec le jeux de données initiel
-tempPoly <- left_join(testData, dfPoly, 
-                      by = c("ID_BFEC"))
+  
+  #3.2 Faire le join avec le jeux de données initiel
+  tempPoly <- left_join(testData, dfPoly, 
+                        by = c("ID_BFEC"))
 
 
 ##############################################################################
@@ -268,24 +298,37 @@ tempPoly <- left_join(testData, dfPoly,
 ##############################################################################
 ##############################################################################
 
-#3.3 Enregistrer les extrants
-write_csv(tempPoly, 
-          file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
-                    "Script_Plusieurs_SDOMs\\7MP\\Test outputs", "Test 2751",
-                    paste0("poly2751_courbe", supMin_courbe,"_",
-                           supMin_pointAttach, ".csv")))
+  #3.3 Enregistrer les extrants
+  write_csv(tempPoly, 
+            file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
+                      "Script_Plusieurs_SDOMs\\7MP\\Test outputs", "Test 2751",
+                      paste0("poly2751_courbe", supMin_courbe,"_",
+                             supMin_pointAttach, ".csv")))
+  
+  write_csv(dfStrate,
+            file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
+                      "Script_Plusieurs_SDOMs\\7MP\\Test outputs", "Test 2751",
+                      paste0("strate2751_courbe", supMin_courbe,"_",
+                             supMin_pointAttach, ".csv")))
+  
+  write_csv(dfCourbesPetites,
+            file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
+                      "Script_Plusieurs_SDOMs\\7MP\\Test outputs", "Test 2751",
+                      paste0("petit2751_courbe", supMin_courbe,"_",
+                             supMin_pointAttach, ".csv")))
+  
+}
 
-write_csv(dfStrate,
-          file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
-                    "Script_Plusieurs_SDOMs\\7MP\\Test outputs", "Test 2751",
-                    paste0("strate2751_courbe", supMin_courbe,"_",
-                           supMin_pointAttach, ".csv")))
 
-write_csv(dfCourbesPetites,
-          file.path("T:", "Donnees", "Courant", "Projets", "Chantier_M7M",
-                    "Script_Plusieurs_SDOMs\\7MP\\Test outputs", "Test 2751",
-                    paste0("petit2751_courbe", supMin_courbe,"_",
-                           supMin_pointAttach, ".csv")))
+
+
+
+
+
+
+
+
+
 
 
 

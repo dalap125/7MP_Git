@@ -397,7 +397,7 @@ faireKnn <- function(dfDonneesPoly,
                         gsub("v5", "v4", GE5),  
                         as.character(GE5)))
   
- 
+
   #3.1 Calculer la superficie de chaque GE + v12 et v34
   echelle_2g <- 
     dfDonneesPoly %>% 
@@ -410,7 +410,7 @@ faireKnn <- function(dfDonneesPoly,
   ratio_2g <- 
     echelle_2g %>% 
     group_by(SDOM_BIO, GR_STATION, TYF, Enjeux_evo) %>% 
-    summarise(ratio_2g = round(echelle_2[1] / sum(echelle_2)))
+    summarise(ratio_2g = round(echelle_2[1] / sum(echelle_2), 2))
   
   
   #3.3 Calculer la superficie de chaque GE + v1, v2 ,v3 et v34
@@ -484,21 +484,21 @@ faireKnn <- function(dfDonneesPoly,
              #<= 1.2 (i.e. les 2  groupes sont bien equilibrés), on les donne 
              #un GE3
              .$echelle_5 < supMin_courbe & .$echelle_2 >= supMin_courbe &
-               (.$ratio_5g >= 0.80 & .$ratio_5g <= 1.20) &
+               (.$ratio_5g >= 0.40 & .$ratio_5g <= 0.60) &
                (.$echelle_2 - .$echelle_5 < supMin_courbe) &
                !is.na(.$GE3) ~ .$GE3,
              
              .$echelle_5 < supMin_courbe & .$echelle_2 >= supMin_courbe &
-               (.$ratio_5g >= 0.80 & .$ratio_5g <= 1.20) &
+               (.$ratio_5g >= 0.40 & .$ratio_5g <= 0.60) &
                (.$echelle_2 - .$echelle_5 < supMin_courbe) &
                !is.na(.$GE1) ~ .$GE1,
            
              
            #3.7.4 Si sup v12/v34 < supMinCourbe MAIS sup totale >= supMinCourbe et
-           #le ratio entre les 2 courbes (v12 et v34) est >= 0.8 et <= 1.2 
+           #le ratio entre les 2 courbes (v12 et v34) est >= 0.4 et <= 0.6 
            #(i.e. les 2 groupes sont bien equilibrés), on les donne un GE1
              .$echelle_2 < supMin_courbe & .$echelle_gen >= supMin_courbe &
-             (.$ratio_2g >= 0.80 & .$ratio_2g <= 1.20) &
+             (.$ratio_2g >= 0.40 & .$ratio_2g <= 0.60) &
              (.$echelle_gen - .$echelle_2 < supMin_courbe) &
              !is.na(.$GE1) ~ .$GE1,
   
